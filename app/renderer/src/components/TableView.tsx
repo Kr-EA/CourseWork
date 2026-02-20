@@ -3,69 +3,109 @@ import { Translation } from '../types/colums_translation';
 import { Button, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { Notify } from './Notify';
 import { TableViewProps } from '../types/types';
-import { loadEntries } from '../tools/api_tools';
-import {TProduct, TSell} from '../../../main/src/db/schema'
 
-export function TableView({loadUnit, hint} : TableViewProps) {
-    const [renderedEntries, setRenderedEntries] = useState<Array<TProduct | TSell>>([])
-    const nextRenderedEntries = useRef<Array<TProduct | TSell>>([])
-
+export function TableView<T>({ req, loadUnit, elementsLoader, exceptions }: TableViewProps<T>) {
+    const [renderedEntries, setRenderedEntries] = useState<Array<T>>([]);
     const [isLoadPossible, switchLoadPossibility] = useState<boolean>(false);
-
     const [loadedEntries, setLoadedEntries] = useState<number>(loadUnit);
-    const currentLoadIndex = useRef<number>(0)
 
-    const getNewElements = () => {
-        var newElements: Array<TProduct | TSell> = loadEntries(loadUnit, hint)
-        if (newElements.length === 0){
+    const currentLoadIndex = useRef<number>(0);
+    const loading = useRef<boolean>(false);
+
+    const getNewElements = async () => {
+        const newElements: Array<T> = await elementsLoader(req, currentLoadIndex.current, loadUnit);
+        
+        if (newElements.length === 0) {
             switchLoadPossibility(true);
+            return [];
+        } else {
+            currentLoadIndex.current += loadUnit;
+            return newElements;
         }
-        else{
-            currentLoadIndex.current += loadUnit
-            return newElements
-        }
-    }
+    };
 
     useEffect(() => {
-        if(renderedEntries.length < loadedEntries){
-            nextRenderedEntries.current = getNewElements() || []
-        }
-        if(nextRenderedEntries.current.length != 0) {
-            setRenderedEntries([...renderedEntries, ...nextRenderedEntries.current])
-        }
-    }, [loadedEntries])
+        setRenderedEntries([]);
+        currentLoadIndex.current = 0;
+        switchLoadPossibility(false);
+        setLoadedEntries(loadUnit);
+        loading.current = false;
+    }, [req, loadUnit]);
 
-    return (<>
-        <Table>
-            <TableHead>
-                <TableRow>
-                    {Object.keys(renderedEntries[0] ? renderedEntries[0] : {} as Object)?.map((value) => <TableCell>{Translation[value as keyof typeof Translation]}</TableCell>)}
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {
-                renderedEntries.map((el) => 
+    useEffect(() => {
+        const load = async () => {
+            if (loading.current) return;
+            loading.current = true;
+            try {
+                const newElements = await getNewElements();
+                if (newElements.length > 0) {
+                    setRenderedEntries(prev => [...prev, ...newElements]);
+                } 
+            } catch (err) {
+                console.error(err);
+            }
+            finally{
+                loading.current = false;
+            }
+        };
+
+        if (renderedEntries.length < loadedEntries) {
+            load();
+        }
+    }, [req, loadedEntries]); 
+
+    const firstEntry = renderedEntries[0];
+    const tableHeaders = firstEntry ? Object.keys(firstEntry as Object) : [];
+
+    return (
+        <>
+            <Table>
+                <TableHead>
                     <TableRow>
-                        {
-                            Object.keys(el as Object).map((value) => 
-                                <TableCell>
-                                    {(() => {
-                                        var rawValue = el[value as keyof typeof el]
-                                        if (typeof rawValue != 'object'){
-                                            return rawValue.toString()
-                                        }
-                                        var date: Date = new Date(rawValue);
-                                        if(!isNaN(date.getTime())){
-                                            return date.toLocaleDateString('ru-RU')
-                                        }
-                                    })()}
-                                </TableCell>)
-                        }
+                        {tableHeaders.map((value) =>
+                            !exceptions.find((e) => e === value) ? (
+                                <TableCell key={value}>
+                                    {Translation[value as keyof typeof Translation] || value.toString()}
+                                </TableCell>
+                            ) : null
+                        )}
                     </TableRow>
-                )}
-            </TableBody>
-        </Table>
-        <Button type='button' onClick={() => setLoadedEntries(loadedEntries + loadUnit)}>Загрузить еще {loadUnit}</Button>
-        <Notify active={isLoadPossible} message={'Загрузка невозможна: данных больше нет'} submitListener={() => {switchLoadPossibility(false)}}></Notify>
-    </>)
+                </TableHead>
+                <TableBody>
+                    {renderedEntries.map((el, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                            {Object.keys(el as Object).map((value) =>
+                                !exceptions.find((e) => e === value) ? (
+                                    <TableCell key={value}>
+                                        {(() => {
+                                            const rawValue = el[value as keyof typeof el];
+                                            const stringRawValue = String(rawValue);
+                                            if (typeof rawValue !== 'object') {
+                                                return stringRawValue;
+                                            }
+                                            const date = new Date(stringRawValue);
+                                            if (!isNaN(date.getTime())) {
+                                                return date.toLocaleDateString('ru-RU');
+                                            }
+                                        })()}
+                                    </TableCell>
+                                ) : null
+                            )}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+            <Button 
+                type='button' 
+                onClick={() => setLoadedEntries(prev => prev + loadUnit)}
+            >
+                Загрузить еще {loadUnit}
+            </Button>
+            <Notify 
+                active={isLoadPossible} 
+                message={'Загрузка невозможна: данных нет'} 
+                submitListener={() => switchLoadPossibility(false)}
+            />
+        </>
+    );
 }

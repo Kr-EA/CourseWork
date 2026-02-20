@@ -1,33 +1,23 @@
-import {TProduct, TSell} from '../../../main/src/db/schema'
+import {TProduct, TSell} from '../types/types'
 
-export function loadEntries(amount: number, hint: 'product' | 'sell') {
-
-    var arr;
-
-    switch (hint){
-        case 'product':
-            arr = loadProducts(amount)
-            break
-        case 'sell':
-            arr = loadSells(amount)
-            break
+export async function loadSells(req: string | null, currentIndex: number, amount: number){
+    var arr: Array<TSell>
+    if(!req){
+        arr = (await window.electronAPI.getSells(currentIndex, amount)).map((el) => ({...el, product_name: el.product.name}))
     }
-
-    return arr;
-}
-
-function loadSells(amount: number){
-    var arr: Array<TSell> = []
-    for (var i: number = 0; i < amount; i += 1){
-        arr.push({id: 1, sell_date: new Date(), sell_price: 900, product: 1})
+    else{
+        arr = (await window.electronAPI.searchSells(req, currentIndex, amount)).map((el) => ({...el.Sell, product_name: el.Product.name}))
     }
     return arr
 }
 
-function loadProducts(amount: number){
-    var arr: Array<TProduct> = []
-    for (var i: number = 0; i < amount; i += 1){
-        arr.push({id: 1, name: 'ПИВО', bought_date: new Date(), bought_price: 400, expiration_date: new Date('2026-02-02'), unit_capacity: 5, units_amount: 2})
+export async function loadProducts(req: string | null, currentIndex: number, amount: number){
+    var arr: Array<TProduct> 
+    if(!req || req.length == 0){
+        arr = await window.electronAPI.getProducts(currentIndex, amount)
+    }
+    else{
+        arr = await window.electronAPI.searchProducts(req, currentIndex, amount)
     }
     return arr
 }

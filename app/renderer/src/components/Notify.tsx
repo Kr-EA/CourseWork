@@ -1,5 +1,4 @@
 import { Button, Dialog } from "@mui/material"
-import { useState } from "react"
 
 export const Notify = (props: {active: boolean, message: string, submitListener: () => void}) => {
 

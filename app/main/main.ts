@@ -1,8 +1,49 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { initDb } from './src/db/index'
+import { gt, desc, and, like, eq } from 'drizzle-orm';
+import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
+import { Product, Sell } from './src/db/schema';
+import * as schema from './src/db/schema'
 
-//icpMain.handle('signal', () => {processing})
+ipcMain.handle('get-products', async (e, currentIndex: number, amount: number) => {
+  const db = getDb();
+  const result = await db.select().from(Product).where(gt(Product.id, currentIndex)).limit(amount)
+  return result
+})
+
+ipcMain.handle('get-sells', async (e, currentIndex: number, amount: number) => {
+  const db = getDb();
+
+  const result = await db.query.Sell.findMany({
+    where: gt(Sell.id, currentIndex),
+    limit: amount,                  
+    with: {
+      product: true,
+    },
+  });
+  return result;
+});
+
+ipcMain.handle('search-products', async (e, req: string, currentIndex: number, amount: number) => {
+  const db = getDb();
+  const result = await db.select().from(Product).where(like(Product.name, `%${req}%`)).limit(amount).offset(currentIndex)
+  return result
+})
+
+ipcMain.handle('search-sells', async (e, req: string, currentIndex: number, amount: number) => {
+  const db = getDb();
+
+  const result = await db.select()
+  .from(Sell)
+  .leftJoin(Product, eq(Sell.product_id, Product.id))
+  .where(
+    like(Product.name, `%${req}%`)
+  )
+  .limit(amount)
+  .offset(currentIndex);
+
+  return result;
+})
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -32,17 +73,6 @@ app.whenReady().then(() => {
     app.quit();
     return;
   }
-
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:3000;"
-        ]
-      }
-    });
-  });
 
   createWindow();
 

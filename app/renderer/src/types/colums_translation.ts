@@ -8,5 +8,6 @@ export const Translation = {
     unit_capacity: 'Количество товара в упаковке',
     sell_date: 'Дата продажи',
     sell_price: 'Стоимость продажи',
-    product: 'ID продукта'
+    product_id: 'ID товара',
+    product_name: 'Наименование товара',
 }
