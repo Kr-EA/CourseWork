@@ -17,6 +17,11 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
       {
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+      },
+      {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         use: {
@@ -29,12 +34,20 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.ts', '.tsx', '.js', '.jsx']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs'],
+    fallback: {
+      "process": require.resolve("process/browser"),
+      "buffer": require.resolve("buffer/"),         
+    },
+    alias: {
+      'process/browser': require.resolve('process/browser.js'),
+    }
   },
   output: {
     path: path.resolve(__dirname, 'dist/renderer'),
     filename: 'bundle.js',
     publicPath: '/', 
+    clean: true, 
   },
   performance: {
     hints: false,
@@ -45,8 +58,9 @@ module.exports = {
     }),
     new webpack.ProvidePlugin({
       global: 'globalThis', 
-      process: 'process/browser', 
-    })
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'], 
+    }),
   ],
   devtool: 'inline-source-map',
   stats: 'errors-only', 

@@ -7,6 +7,10 @@ export interface TableViewProps<T>{
     elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<Array<T>>
 }
 
+export interface HeaderProps{
+    routes: Array<{title: string, path: string}>
+}
+
 export interface SearchInputProps<T>{
     placeholder: string;
     loadUnit: number,
