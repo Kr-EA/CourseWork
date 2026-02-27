@@ -4,7 +4,7 @@ export const routes: Array<{title: string, path: string}> = [
         path: '/'
     }, 
     {
-        title: 'Продукты', 
+        title: 'Закупки', 
         path: '/products'
     },
     {
@@ -14,5 +14,9 @@ export const routes: Array<{title: string, path: string}> = [
     {
         title: 'Аналитика', 
         path: '/analytics'
+    },
+    {
+        title: 'Тестовые данные', 
+        path: '/testdata'
     }
 ]

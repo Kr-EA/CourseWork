@@ -1,10 +1,16 @@
 import { DB_TProduct, DB_TSell, DB_TNewProduct, DB_TNewSell } from "../../../main/src/db/schema"
 
+export type APIResponse = {
+    status: 0 | 1;
+    data: any;
+    error: string;
+}
+
 export interface TableViewProps<T>{
     req: string | null,
     loadUnit: number,
     exceptions: Array<string>,
-    elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<Array<T>>
+    elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<APIResponse>
 }
 
 export interface HeaderProps{
@@ -15,7 +21,7 @@ export interface SearchInputProps<T>{
     placeholder: string;
     loadUnit: number,
     exceptions: Array<string>,
-    elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<Array<T>>
+    elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<APIResponse>
 }
 
 export interface TProduct extends DB_TProduct{};

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6b474ed0-1170-41f3-b28e-07e5102ae09f",
+  "id": "8d82c7f6-0fae-471c-a2c5-5d098fce9735",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "Product": {
@@ -30,7 +30,7 @@
         },
         "unit_capacity": {
           "name": "unit_capacity",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -82,6 +82,13 @@
         },
         "sell_price": {
           "name": "sell_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

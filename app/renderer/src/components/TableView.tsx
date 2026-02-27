@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Translation } from '../types/colums_translation';
-import { Button, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Alert, Button, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { Notify } from './Notify';
 import { TableViewProps } from '../types/types';
 
@@ -8,18 +8,24 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions }: Tabl
     const [renderedEntries, setRenderedEntries] = useState<Array<T>>([]);
     const [isLoadPossible, switchLoadPossibility] = useState<boolean>(false);
     const [loadedEntries, setLoadedEntries] = useState<number>(loadUnit);
+    const [isAlertVisible, setAlertVisible] = useState<boolean>(false)
 
     const currentLoadIndex = useRef<number>(0);
     const loading = useRef<boolean>(false);
 
     const getNewElements = async () => {
-        const newElements: Array<T> = await elementsLoader(req, currentLoadIndex.current, loadUnit);
-        
+        const newElements: Array<T> = (await elementsLoader(req, currentLoadIndex.current, loadUnit)).data;
         if (newElements.length === 0) {
-            switchLoadPossibility(true);
+            if (!req || currentLoadIndex.current >= 1){
+                switchLoadPossibility(true);
+            }
+            else{
+                setAlertVisible(true)
+            }
             return [];
         } else {
-            currentLoadIndex.current += loadUnit;
+            currentLoadIndex.current += newElements.length;
+            setAlertVisible(false)
             return newElements;
         }
     };
@@ -52,6 +58,10 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions }: Tabl
         if (renderedEntries.length < loadedEntries) {
             load();
         }
+
+        return () => {
+            loading.current = false; 
+        };
     }, [req, loadedEntries]); 
 
     const firstEntry = renderedEntries[0];
@@ -59,6 +69,7 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions }: Tabl
 
     return (
         <>
+            <Alert style={{display: isAlertVisible ? 'flex' : 'none', color: 'red'}} severity="error">{`"${req}" нет в списке!`}</Alert>
             <Table>
                 <TableHead>
                     <TableRow>

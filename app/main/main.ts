@@ -1,48 +1,132 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { gt, desc, and, like, eq } from 'drizzle-orm';
+import { gt, like, eq } from 'drizzle-orm';
 import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
-import { Product, Sell } from './src/db/schema';
-import * as schema from './src/db/schema'
+import { DB_TNewProduct, Product, Sell } from './src/db/schema';
+import { TNewSell, APIResponse } from '../renderer/src/types/types'
 
 ipcMain.handle('get-products', async (e, currentIndex: number, amount: number) => {
   const db = getDb();
-  const result = await db.select().from(Product).where(gt(Product.id, currentIndex)).limit(amount)
-  return result
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    response.data = await db.select().from(Product).where(gt(Product.id, currentIndex)).limit(amount)
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response
+})
+
+ipcMain.handle('get-product-variants', async (e) => {
+  const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    response.data = await db.select({id: Product.id, name: Product.name, bought_date: Product.bought_date}).from(Product)
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response
 })
 
 ipcMain.handle('get-sells', async (e, currentIndex: number, amount: number) => {
   const db = getDb();
 
-  const result = await db.query.Sell.findMany({
-    where: gt(Sell.id, currentIndex),
-    limit: amount,                  
-    with: {
-      product: true,
-    },
-  });
-  return result;
+  var response: APIResponse = {status: 0, error: '', data: ''}
+
+  try{
+    response.data = await db.query.Sell.findMany({
+      where: gt(Sell.id, currentIndex),
+      limit: amount,                  
+      with: {
+        product: true,
+      },
+    });
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response;
 });
 
 ipcMain.handle('search-products', async (e, req: string, currentIndex: number, amount: number) => {
   const db = getDb();
-  const result = await db.select().from(Product).where(like(Product.name, `%${req}%`)).limit(amount).offset(currentIndex)
-  return result
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try {
+    response.data = await db.select().from(Product).where(like(Product.name, `%${req}%`)).limit(amount).offset(currentIndex)
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response
 })
 
 ipcMain.handle('search-sells', async (e, req: string, currentIndex: number, amount: number) => {
   const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    response.data = await db.select()
+    .from(Sell)
+    .leftJoin(Product, eq(Sell.product_id, Product.id))
+    .where(
+      like(Product.name, `%${req}%`)
+    )
+    .limit(amount)
+    .offset(currentIndex);
+  }
+  catch (err){
+    response.status = 1;
+    response.error = err as string
+  }
 
-  const result = await db.select()
-  .from(Sell)
-  .leftJoin(Product, eq(Sell.product_id, Product.id))
-  .where(
-    like(Product.name, `%${req}%`)
-  )
-  .limit(amount)
-  .offset(currentIndex);
+  return response;
+})
 
-  return result;
+ipcMain.handle('add-product', async (e, product: DB_TNewProduct) => {
+  const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+
+  try {
+    await db.insert(Product).values(product)
+  }
+  catch (err){
+    response.status = 1;
+    response.error = err as string
+  }
+
+  return response
+})
+
+ipcMain.handle('add-sell', async (e, sell: TNewSell) => {
+  const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  if (!sell.product_id){
+    response.error = 'Некорректный ID товара'
+    response.status = 1
+    return response
+  }
+  const id = sell.product_id
+  db.transaction((transaction) => {
+    var product = transaction.select({amount: Product.units_amount}).from(Product).where(eq(Product.id, id)).get()
+    if (!product){
+      response.error = 'Товар не найден'
+      response.status = 1
+      return response
+    }
+    if (sell.amount > product.amount) {
+      response.error = 'Недостаточно товара на складе'
+      response.status = 1
+      return response
+    }
+    var newAmount = product.amount - sell.amount
+    transaction.insert(Sell).values(sell).run()
+    transaction.update(Product).set({units_amount: newAmount}).where(eq(Product.id, id)).run()
+  });
+  return response
 })
 
 function createWindow() {
@@ -67,9 +151,7 @@ app.whenReady().then(() => {
 
   try {
     initDb();
-    console.log('[MAIN] Database is ready.');
   } catch (err) {
-    console.error('[MAIN] Failed to start DB:', err);
     app.quit();
     return;
   }

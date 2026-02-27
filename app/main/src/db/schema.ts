@@ -15,6 +15,7 @@ export const Sell = sqliteTable('Sell', {
     id: integer('id').primaryKey({autoIncrement: true}),
     sell_date: integer('sell_date', {mode: 'timestamp'}).notNull(),
     sell_price: integer('sell_price').notNull(),
+    amount: integer('amount').notNull(),
     product_id: integer('product').references(() => Product.id, {onDelete: 'cascade', onUpdate: 'cascade'}),
 })
 

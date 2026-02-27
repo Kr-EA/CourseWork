@@ -44,8 +44,12 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.8",
     "better-sqlite3": "^12.6.2",
+    "css-loader": "^7.1.4",
     "drizzle-orm": "^0.45.1",
+    "formik": "^2.4.9",
     "react-router-dom": "^7.13.1",
-    "ts-transformer-keys": "^0.4.4"
+    "style-loader": "^4.0.0",
+    "ts-transformer-keys": "^0.4.4",
+    "yup": "^1.7.1"
   }
 }
