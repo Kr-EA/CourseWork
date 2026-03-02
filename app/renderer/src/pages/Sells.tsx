@@ -7,7 +7,7 @@ import { useFormik } from "formik"
 import * as Yup from 'yup'
 import { formatDateForInput } from "../api/tools"
 import { useEffect, useRef, useState } from "react"
-import { Alert, Autocomplete, Button, FormLabel, Input, Stack, TextField } from "@mui/material"
+import { Alert, Autocomplete, Button, Container, Dialog, FormLabel, Input, Stack, TextField } from "@mui/material"
 
 export const Sells = ({loadUnit}: {loadUnit: number}) => {
 
@@ -60,11 +60,11 @@ export const Sells = ({loadUnit}: {loadUnit: number}) => {
           formik.resetForm();
           let sell: TNewSell = {
             sell_date: new Date(input.sell_date),
-            sell_price: input.sell_price as any as number,
-            amount: input.amount as any as number,
-            product_id: input.product_id as any as number,
+            sell_price: parseInt(input.sell_price, 10),
+            amount: input.amount,
+            product_id: input.product_id,
           };
-          addSell(sell).then((response: APIResponse) => {
+          addSell(sell, false).then((response: APIResponse) => {
             if(response.status === 1){
               alert(response.error)
             }
@@ -78,55 +78,67 @@ export const Sells = ({loadUnit}: {loadUnit: number}) => {
     <>
       <Header routes={routes}/>
       <Stack>
-        <SearchTable<TSell> placeholder='Поиск по продажам' exceptions={['product', 'product_id']} loadUnit={loadUnit} elementsLoader={(req: string | null, currentIndex: number, amount: number)=>loadSells(req, currentIndex, amount)}/>
-        <Button onClick={() => {setAddSelected(!isAddSelected); formik.resetForm()}} variant="contained">+</Button>
+          <SearchTable<TSell> 
+            placeholder='Поиск по продажам' 
+            exceptions={['product', 'product_id']} 
+            loadUnit={loadUnit} 
+            key={isAddSelected?0:1}
+            elementsLoader={
+              (req: string | null, currentIndex: number, amount: number)=>loadSells(req, currentIndex, amount)
+              }
+            rowClicked={(el) => {console.log(el);}}
+              />
+        <Button style={{marginTop: '30px'}} onClick={() => {setAddSelected(!isAddSelected); formik.resetForm()}} variant="contained">+</Button>
         <Stack style={{
           'opacity': isAddSelected ? 1 : 0,
           'transition': 'opacity 0.3s ease-in-out'
           }}>
-          <form onSubmit={formik.handleSubmit}>
-            <div>
-              <Autocomplete
-                disablePortal
-                options={productVariants || []}
-                sx={{ width: 300 }}
-                onChange={(e, value) => {formik.setFieldValue('product_id', value?.id)}}
-                renderInput={(params) => <TextField {...params} label="Выберите товар"/>}
-              />
-              {formik.touched.product_id && formik.errors.product_id ? (
-                <Alert severity="error" style={{ color: 'red' }}>{formik.errors.product_id}</Alert>
-              ) : null}
-            </div>
-            <div>
-              <FormLabel htmlFor="sell_price">Стоимость продажи</FormLabel>
-              <Input
-                id="sell_price"
-                name="sell_price"
-                type="number"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.sell_price}
-              />
-              {formik.touched.sell_price && formik.errors.sell_price ? (
-                <Alert severity="error" style={{ color: 'red' }}>{formik.errors.sell_price}</Alert>
-              ) : null}
-            </div>
-            <div>
-              <FormLabel htmlFor="amount">Количество проданной продукции</FormLabel>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.amount}
-              />
-              {formik.touched.amount && formik.errors.amount ? (
-                <Alert severity="error" style={{ color: 'red' }}>{formik.errors.amount}</Alert>
-              ) : null}
-            </div>
-            <Button type='submit' disabled={formik.isSubmitting} variant="contained">Подтвердить</Button>
-          </form>
+          <Dialog open={isAddSelected}>
+            <form onSubmit={formik.handleSubmit}>
+              <div>
+                <Autocomplete
+                  disablePortal
+                  options={productVariants || []}
+                  sx={{ width: 300 }}
+                  onChange={(e, value) => {formik.setFieldValue('product_id', value?.id); console.log(value?.id);}}
+                  renderInput={(params) => <TextField {...params} label="Выберите товар"/>}
+                />
+                {formik.touched.product_id && formik.errors.product_id ? (
+                  <Alert severity="error" style={{ color: 'red' }}>{formik.errors.product_id}</Alert>
+                ) : null}
+              </div>
+              <div>
+                <FormLabel htmlFor="sell_price">Стоимость продажи</FormLabel>
+                <Input
+                  id="sell_price"
+                  name="sell_price"
+                  type="number"
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.sell_price}
+                />
+                {formik.touched.sell_price && formik.errors.sell_price ? (
+                  <Alert severity="error" style={{ color: 'red' }}>{formik.errors.sell_price}</Alert>
+                ) : null}
+              </div>
+              <div>
+                <FormLabel htmlFor="amount">Количество проданной продукции</FormLabel>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.amount}
+                />
+                {formik.touched.amount && formik.errors.amount ? (
+                  <Alert severity="error" style={{ color: 'red' }}>{formik.errors.amount}</Alert>
+                ) : null}
+              </div>
+              <Button type='submit' disabled={formik.isSubmitting} variant="contained">Подтвердить</Button>
+              <Button onClick={() => setAddSelected(false)} variant="contained">Отмена</Button>
+            </form>
+          </Dialog>
         </Stack>
       </Stack>
     </>

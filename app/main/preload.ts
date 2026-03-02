@@ -7,8 +7,9 @@ export interface IElectronAPI {
     searchProducts: (req: string, currentIndex: number, amount: number) => Promise<APIResponse>
     searchSells: (req: string, currentIndex: number, amount: number) => Promise<APIResponse>
     addProduct: (product: TNewProduct) => Promise<APIResponse>
-    addSell: (sell: TNewSell) => Promise<APIResponse>
+    addSell: (sell: TNewSell, test: boolean) => Promise<APIResponse>
     getProductVariants: () => Promise<APIResponse>
+    getMaximumProductID: () => Promise<APIResponse>
 }
 
 const api: IElectronAPI = {
@@ -17,8 +18,9 @@ const api: IElectronAPI = {
     searchProducts: async (req: string, currentIndex: number, amount: number) => ipcRenderer.invoke('search-products', req, currentIndex, amount),
     searchSells: async (req: string, currentIndex: number, amount: number) => ipcRenderer.invoke('search-sells', req, currentIndex, amount),
     addProduct: async (product: TNewProduct) => ipcRenderer.invoke('add-product', product),
-    addSell: async (sell: TNewSell) => ipcRenderer.invoke('add-sell', sell),
-    getProductVariants: async() => ipcRenderer.invoke('get-product-variants')
+    addSell: async (sell: TNewSell, test: boolean) => ipcRenderer.invoke('add-sell', sell, test),
+    getProductVariants: async() => ipcRenderer.invoke('get-product-variants'),
+    getMaximumProductID: async() => ipcRenderer.invoke('max-product-ID'),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { gt, like, eq } from 'drizzle-orm';
+import { gt, like, eq, max } from 'drizzle-orm';
 import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
 import { DB_TNewProduct, Product, Sell } from './src/db/schema';
@@ -18,11 +18,24 @@ ipcMain.handle('get-products', async (e, currentIndex: number, amount: number) =
   return response
 })
 
+ipcMain.handle('max-product-ID', async() => {
+  const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    response.data = db.select({id: max(Product.id)}).from(Product).get()?.id
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response
+})
+
 ipcMain.handle('get-product-variants', async (e) => {
   const db = getDb();
   var response: APIResponse = {status: 0, error: '', data: ''}
   try{
-    response.data = await db.select({id: Product.id, name: Product.name, bought_date: Product.bought_date}).from(Product)
+    response.data = await db.select({id: Product.id, name: Product.name, bought_date: Product.bought_date}).from(Product).where(gt(Product.units_amount, 0))
   }
   catch(err){
     response.status = 1
@@ -101,7 +114,7 @@ ipcMain.handle('add-product', async (e, product: DB_TNewProduct) => {
   return response
 })
 
-ipcMain.handle('add-sell', async (e, sell: TNewSell) => {
+ipcMain.handle('add-sell', async (e, sell: TNewSell, test: boolean) => {
   const db = getDb();
   var response: APIResponse = {status: 0, error: '', data: ''}
   if (!sell.product_id){
@@ -124,7 +137,9 @@ ipcMain.handle('add-sell', async (e, sell: TNewSell) => {
     }
     var newAmount = product.amount - sell.amount
     transaction.insert(Sell).values(sell).run()
-    transaction.update(Product).set({units_amount: newAmount}).where(eq(Product.id, id)).run()
+    if (!test){
+      transaction.update(Product).set({units_amount: newAmount}).where(eq(Product.id, id)).run()
+    }
   });
   return response
 })

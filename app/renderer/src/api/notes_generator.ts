@@ -1,4 +1,4 @@
-import { TNewProduct } from "../types/types";
+import { TNewProduct, TNewSell, TSell } from "../types/types";
 
 function getRandomElement<T>(array: T[]): T {
   if (array.length === 0) {
@@ -6,6 +6,12 @@ function getRandomElement<T>(array: T[]): T {
   }
   const randomIndex = Math.floor(Math.random() * array.length);
   return array[randomIndex];
+}
+
+function getRandomInt(min: number, max: number): number {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getRandomDatePair(): [Date, Date] {
@@ -73,3 +79,13 @@ const brands = ["Вектор", "Родник", "Зенит", "Орион", "С�
     "Омега", "Нектар", "Дар", "Бриз", "Луч", "Мир", "Тонус", "Вита", "Смак", "Гранд", "Нова", 
     "Альфа", "Классик", "Премиум", "Выбор", "Удача", "Традиция", "Акцент", "Ритм", "Пульс", 
     "Формат", "Стиль", "Вкус", "Дом"];
+
+export function getRandomSell(maxID: number) {
+  const sell_date = getRandomDatePair()[0]
+  const sell_price = getRandomInt(50, 300); 
+  const amount = getRandomInt(1, 10); 
+  const product_id = getRandomInt(1, maxID)
+
+  const sell: TNewSell = {sell_date, sell_price, amount, product_id}
+  return sell;
+}

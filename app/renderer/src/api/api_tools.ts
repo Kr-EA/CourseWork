@@ -27,12 +27,17 @@ export async function addProduct(product: TNewProduct) {
     return response
 }
 
-export async function addSell(sell: TNewSell) {
-    const response = await window.electronAPI.addSell(sell)
+export async function addSell(sell: TNewSell, test: boolean) {
+    const response = await window.electronAPI.addSell(sell, test)
     return response
 }
 
 export async function getProductVariants() {
     const response = await window.electronAPI.getProductVariants()
+    return response
+}
+
+export async function getMaximumProductID() {
+    const response = await window.electronAPI.getMaximumProductID()
     return response
 }
