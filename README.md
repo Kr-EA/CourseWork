@@ -4,11 +4,11 @@
 
 # ToDo
 - ~~inserting into products and sells (api and ui)~~
-- home page
 - analytics
-    - price-sells
-    - product-sells
-    - day-sells
-    - product-(sells in buyday, sells during the expiration date, remainder)
+    - price-sells (3)
+    - product-sells (1)
+    - day-sells (2)
+    - product-(sells in buyday, sells during the expiration date, remainder) (4)
+- home page
 - page appearance
 

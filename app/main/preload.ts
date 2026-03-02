@@ -9,6 +9,7 @@ export interface IElectronAPI {
     addProduct: (product: TNewProduct) => Promise<APIResponse>
     addSell: (sell: TNewSell, test: boolean) => Promise<APIResponse>
     getProductVariants: () => Promise<APIResponse>
+    getDistinctProductNames: () => Promise<APIResponse>
     getMaximumProductID: () => Promise<APIResponse>
 }
 
@@ -20,7 +21,7 @@ const api: IElectronAPI = {
     addProduct: async (product: TNewProduct) => ipcRenderer.invoke('add-product', product),
     addSell: async (sell: TNewSell, test: boolean) => ipcRenderer.invoke('add-sell', sell, test),
     getProductVariants: async() => ipcRenderer.invoke('get-product-variants'),
+    getDistinctProductNames: async() => ipcRenderer.invoke('get-distinct-product-names'),
     getMaximumProductID: async() => ipcRenderer.invoke('max-product-ID'),
 }
-
 contextBridge.exposeInMainWorld('electronAPI', api)

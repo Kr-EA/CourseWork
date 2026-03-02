@@ -37,6 +37,11 @@ export async function getProductVariants() {
     return response
 }
 
+export async function getDistinctProductNames() {
+    const response = await window.electronAPI.getDistinctProductNames()
+    return response
+}
+
 export async function getMaximumProductID() {
     const response = await window.electronAPI.getMaximumProductID()
     return response

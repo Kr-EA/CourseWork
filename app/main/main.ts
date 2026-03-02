@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { gt, like, eq, max } from 'drizzle-orm';
+import { gt, like, eq, max, sql, and } from 'drizzle-orm';
 import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
 import { DB_TNewProduct, Product, Sell } from './src/db/schema';
@@ -36,6 +36,25 @@ ipcMain.handle('get-product-variants', async (e) => {
   var response: APIResponse = {status: 0, error: '', data: ''}
   try{
     response.data = await db.select({id: Product.id, name: Product.name, bought_date: Product.bought_date}).from(Product).where(gt(Product.units_amount, 0))
+  }
+  catch(err){
+    response.status = 1
+    response.error = err as string
+  }
+  return response
+})
+
+ipcMain.handle('get-distinct-product-names', async (e) => {
+  const db = getDb();
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    response.data = await db
+      .select({
+        id: sql<number>`MIN(${Product.id})`,
+        name: Product.name
+      })
+      .from(Product)
+      .groupBy(Product.name);
   }
   catch(err){
     response.status = 1
@@ -103,12 +122,29 @@ ipcMain.handle('add-product', async (e, product: DB_TNewProduct) => {
   const db = getDb();
   var response: APIResponse = {status: 0, error: '', data: ''}
 
-  try {
-    await db.insert(Product).values(product)
+  if(product.bought_date){
+    const productCandidate = db.select({id:Product.id, amount: Product.units_amount}).from(Product).where(and(eq(Product.name, product.name), eq(Product.bought_date, product.bought_date))).get()
+    if(productCandidate){
+      try{
+        const newAmount = productCandidate.amount+product.units_amount
+        db.update(Product).set({units_amount: newAmount}).where(eq(Product.id, productCandidate.id)).run()
+      }
+      catch(err){
+        response.status = 1;
+        response.error = err as string
+      }
+      return response
+    }
   }
-  catch (err){
-    response.status = 1;
-    response.error = err as string
+
+  else{
+    try {
+      await db.insert(Product).values(product)
+    }
+    catch (err){
+      response.status = 1;
+      response.error = err as string
+    }
   }
 
   return response
