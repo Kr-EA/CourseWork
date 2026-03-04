@@ -3,7 +3,7 @@ import { SearchInputProps } from "../types/types"
 import { TableView } from "./TableView"
 import { useEffect, useState } from "react"
 
-export function SearchTable<T>({placeholder, loadUnit, elementsLoader, exceptions, rowClicked}: SearchInputProps<T>){
+export function SearchTable<T>({placeholder, loadUnit, elementsLoader, columnOrder, exceptions, onChange, onDelete, onRepeat}: SearchInputProps<T>){
 
     const [searchRequest, setSearchRequest] = useState<string>('')
     const [inputValue, setInputValue] = useState<string>('')
@@ -18,8 +18,8 @@ export function SearchTable<T>({placeholder, loadUnit, elementsLoader, exception
 
     return (<>
         <form onSubmit={(e) => e.preventDefault()} style={{marginBottom: '10px'}}>
-            <Input value={inputValue} placeholder={placeholder} onChange={(e) => {setInputValue(e.target.value)}}></Input>
+            <Input fullWidth value={inputValue} placeholder={placeholder} onChange={(e) => {setInputValue(e.target.value)}}></Input>
         </form>
-        <TableView<T> key={searchRequest} req={searchRequest} loadUnit={loadUnit} exceptions={exceptions} elementsLoader={elementsLoader} rowClicked={rowClicked}></TableView>
+        <TableView<T> key={searchRequest} req={searchRequest} columnOrder={columnOrder} loadUnit={loadUnit} exceptions={exceptions} elementsLoader={elementsLoader} onChange={onChange} onDelete={onDelete} onRepeat={onRepeat}></TableView>
     </>)
 }

@@ -1,3 +1,4 @@
+import { max } from "drizzle-orm";
 import { TNewProduct, TNewSell, TSell } from "../types/types";
 
 function getRandomElement<T>(array: T[]): T {
@@ -15,9 +16,9 @@ function getRandomInt(min: number, max: number): number {
 }
 
 function getRandomDatePair(): [Date, Date] {
-  const minStart = new Date('2026-02-10T00:00:00').getTime();
+  const minStart = new Date('2026-01-01T00:00:00').getTime();
   
-  const maxEnd = new Date('2027-02-08T23:59:59').getTime();
+  const maxEnd = new Date('2026-03-01T23:59:59').getTime();
 
   const randomStartTime = Math.floor(Math.random() * (maxEnd - minStart + 1)) + minStart;
   
@@ -29,7 +30,13 @@ function getRandomDatePair(): [Date, Date] {
 
   const randomEndTime = Math.floor(Math.random() * (maxEnd - minEndTime + 1)) + minEndTime;
 
-  return [new Date(randomStartTime), new Date(randomEndTime)];
+  const start = new Date(randomStartTime)
+  const end = new Date(randomEndTime)
+
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+
+  return [start, end];
 }
 
 export function getRandomProduct() {
@@ -42,10 +49,11 @@ export function getRandomProduct() {
   const name = `${shortname} "${brand}"`
   const unit_capacity = `${size} ${unit}`
   const units_amount = Math.floor((Math.random() + 0.1) * 30); 
+  const units_bought_amount = units_amount;
   const bought_price = Math.floor((Math.random() + 0.1) * 1000); 
   const [bought_date, expiration_date] = getRandomDatePair()
   
-  const product: TNewProduct = {name, unit_capacity, units_amount, bought_price, bought_date, expiration_date};
+  const product: TNewProduct = {name, unit_capacity, units_amount, units_bought_amount, bought_price, bought_date, expiration_date};
   return product
 }
 
@@ -81,11 +89,12 @@ const brands = ["Вектор", "Родник", "Зенит", "Орион", "С�
     "Формат", "Стиль", "Вкус", "Дом"];
 
 export function getRandomSell(maxID: number) {
+  console.log(maxID);
   const sell_date = getRandomDatePair()[0]
-  const sell_price = getRandomInt(50, 300); 
+  const sell_unit_price = getRandomInt(10, 150); 
   const amount = getRandomInt(1, 10); 
   const product_id = getRandomInt(1, maxID)
 
-  const sell: TNewSell = {sell_date, sell_price, amount, product_id}
+  const sell: TNewSell = {sell_date, sell_unit_price, amount, product_id}
   return sell;
 }

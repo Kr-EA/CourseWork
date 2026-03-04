@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Translation } from '../types/colums_translation';
-import { Alert, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
-import { Notify } from './Notify';
+import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import { ScrollContainerProps, TableViewProps } from '../types/types';
 import { getComparator } from '../api/tools';
 import { TableComponents, TableVirtuoso } from 'react-virtuoso';
 import React from 'react';
+import { ArrowDownward, ArrowUpward } from '@mui/icons-material';
 
 const ScrollContainer = React.forwardRef<HTMLDivElement, ScrollContainerProps>(
     ({ onReachBottom, ...props }, ref) => {
@@ -15,8 +18,7 @@ const ScrollContainer = React.forwardRef<HTMLDivElement, ScrollContainerProps>(
 
             const handleScroll = () => {
                 const { scrollTop, clientHeight, scrollHeight } = element;
-
-                if (Math.abs(scrollHeight - scrollTop - clientHeight) < 1) {
+                if (Math.abs(scrollHeight - scrollTop - clientHeight) <= 1) {
                     onReachBottom();
                 }
             };
@@ -38,9 +40,8 @@ const ScrollContainer = React.forwardRef<HTMLDivElement, ScrollContainerProps>(
 
 ScrollContainer.displayName = 'ScrollContainer';
 
-export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowClicked }: TableViewProps<T>) {
+export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, exceptions, onChange, onRepeat, onDelete }: TableViewProps<T>) {
     const [renderedEntries, setRenderedEntries] = useState<Array<T>>([]);
-    const [isLoadPossible, switchLoadPossibility] = useState<boolean>(false);
     const [loadedEntries, setLoadedEntries] = useState<number>(loadUnit);
     const [isAlertVisible, setAlertVisible] = useState<boolean>(false);
     const [orderBy, setOrderBy] = useState<keyof T>();
@@ -67,7 +68,7 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowCli
             />
         ),
         Table: (props) => (
-            <Table {...props} sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }} />
+            <Table  {...props} sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }} />
         ),
         TableHead: React.forwardRef<HTMLTableSectionElement>((props, ref) => (
             <TableHead {...props} ref={ref} />
@@ -98,56 +99,37 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowCli
         }
     };
 
+    const load = async () => {
+        if (loading.current) return;
+        loading.current = true;
+        try {
+            const newElements = await getNewElements();
+            if (newElements.length > 0) {
+                setRenderedEntries(prev => [...prev, ...newElements]);
+            } 
+        } catch (err) {
+            console.error(err);
+        }
+        finally{
+            loading.current = false;
+        }
+    };
+
     useEffect(() => {
         setRenderedEntries([]);
         currentLoadIndex.current = 0;
-        switchLoadPossibility(false);
         setLoadedEntries(loadUnit);
         loading.current = false;
     }, [req, loadUnit]);
 
     useEffect(() => {
-        const load = async () => {
-            if (loading.current) return;
-            loading.current = true;
-            try {
-                const newElements = await getNewElements();
-                if (newElements.length > 0) {
-                    setRenderedEntries(prev => [...prev, ...newElements]);
-                } 
-            } catch (err) {
-                console.error(err);
-            }
-            finally{
-                loading.current = false;
-            }
-        };
-
         if (renderedEntries.length < loadedEntries) {
             load();
         }
-
         return () => {
             loading.current = false; 
         };
     }, [req, loadedEntries]); 
-
-    useEffect(() => {
-        const element = tableRef.current;
-        if (!element) return;
-
-        const handleScroll = () => {
-        const { scrollTop, clientHeight, scrollHeight } = element;
-
-        if (Math.abs(scrollHeight - scrollTop - clientHeight) < 1) {
-            console.log('Доскроллили до низа элемента!');
-        }
-        };
-
-        element.addEventListener('scroll', handleScroll);
-        return () => element.removeEventListener('scroll', handleScroll);
-    }, []);
-
 
     const firstEntry = renderedEntries[0];
     const tableHeaders = firstEntry ? Object.keys(firstEntry as Object) : [];
@@ -155,32 +137,70 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowCli
     const tableHead = () => (
         (
         <TableRow sx={{ backgroundColor: 'background.paper' }}>
-            {tableHeaders.map((value) =>
+            {(columnOrder || tableHeaders).map((value) =>
                 !exceptions.find((e) => e === value) ? (
-                    <TableCell variant='head' key={value} sortDirection={orderBy === value as keyof T ? order : false}>
+                    <TableCell style={{border: '0.5px solid lightgrey'}} align='center' variant='head' key={value} sortDirection={orderBy === value as keyof T ? order : false}>
                         <TableSortLabel
-                        active={orderBy === value as keyof T}
-                        direction={orderBy === value as keyof T ? order : 'asc'}
-                        onClick={() =>{handleSort(value as keyof T)}}
+                            active={orderBy === value as keyof T}
+                            direction={orderBy === value as keyof T ? order : 'asc'}
+                            onClick={() => handleSort(value as keyof T)}
+                            IconComponent={() => null}
+                            sx={{
+                                '&:hover .custom-sort-icon': {
+                                    opacity: 1,
+                                }
+                            }}
                         >
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, width: '100%' }}>
                             {Translation[value as keyof typeof Translation] || value.toString()}
-                        </TableSortLabel>
-                    </TableCell>
+                            {
+                                orderBy === value as keyof T ?
+                                    order === 'desc'?
+                                        <ArrowUpward
+                                            sx={{ 
+                                                fontSize: '1rem'
+                                            }} 
+                                        />
+                                    :
+                                        <ArrowDownward
+                                            sx={{ 
+                                                fontSize: '1rem'
+                                            }} 
+                                        />
+                                :
+                                <></>
+                            }
+                        </Box>
+                    </TableSortLabel>
+                </TableCell>
                 ) : null
             )}
+            <TableCell style={{border: '0.5px solid lightgrey', width: '300px'}} align='center'>
+                Действия
+            </TableCell>
         </TableRow>)
     )
 
     const TRow = (index: number, el: T) => {
         return(
             <React.Fragment key={index}>
-                {Object.keys(el as Object).map((value) =>
-                    !exceptions.find((e) => e === value) ? (
-                        <TableCell onClick={() => {rowClicked(el)}} key={value}>
+                {(columnOrder || Object.keys(el as Object)).map((key) => {
+                    const rawValue = el[key as keyof typeof el]
+                    if (rawValue || rawValue == 0){
+                        return(
+                            <TableCell style={{border: '0.5px solid lightgrey'}} align={typeof(rawValue) == 'string' ? "center" : 'right'} key={Math.random()}>
                             {(() => {
-                                const rawValue = el[value as keyof typeof el];
                                 const stringRawValue = String(rawValue);
                                 if (typeof rawValue !== 'object') {
+                                    if (typeof rawValue == 'number'){
+                                        if (rawValue != 0){
+                                            const display = (Math.floor(rawValue*100)/100).toString()
+                                            return(display)
+                                        }
+                                        else{
+                                            return('0')
+                                        }
+                                    }
                                     return stringRawValue;
                                 }
                                 const date = new Date(stringRawValue);
@@ -188,9 +208,20 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowCli
                                     return date.toLocaleDateString('ru-RU');
                                 }
                             })()}
-                        </TableCell>
-                    ) : null
-                )}
+                            </TableCell>
+                        )
+                    }
+                    else{
+                        return (
+                            <></>
+                        )
+                    }
+                })}
+            <TableCell style={{border: '0.5px solid lightgrey'}} align='center'>
+                <Button onClick={() => {onRepeat(el)}}><RepeatIcon/></Button>
+                <Button onClick={() => {onDelete(el)}}><DeleteIcon/></Button>
+                <Button onClick={() => {onChange(el)}}><ModeEditIcon/></Button>
+            </TableCell>
             </React.Fragment>
         )
     }
@@ -204,7 +235,6 @@ export function TableView<T>({ req, loadUnit, elementsLoader, exceptions, rowCli
                     components={VirtuosoTableComponents}
                     fixedHeaderContent={tableHead}
                     itemContent={TRow}
-                    onScrollEnd={() => {}}
                 />
             </Paper>
         </>

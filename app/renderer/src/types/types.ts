@@ -14,16 +14,22 @@ export type APIResponse = {
 export interface TableViewProps<T>{
     req: string | null,
     loadUnit: number,
+    columnOrder?: Array<string> | undefined,
     exceptions: Array<string>,
     elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<APIResponse>
-    rowClicked: (el: T) => void
+    onRepeat: (el: T) => void
+    onChange: (el: T) => void
+    onDelete: (el: T) => void
 }
 export interface SearchInputProps<T>{
     placeholder: string;
     loadUnit: number,
+    columnOrder?: Array<string>,
     exceptions: Array<string>,
     elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<APIResponse>
-    rowClicked: (el: T) => void
+    onRepeat: (el: T) => void
+    onChange: (el: T) => void
+    onDelete: (el: T) => void
 }
 export interface HeaderProps{
     routes: Array<{title: string, path: string}>
@@ -32,16 +38,7 @@ export interface ScrollContainerProps extends React.HTMLAttributes<HTMLDivElemen
     onReachBottom?: () => void;
 }
 
-export interface TableWithInputProps<T>{
-    loadUnit: number, 
-    formFunction: (el: T | undefined) => JSX.Element,
-    handleSubmit: () => void,
-    exceptions: Array<string>,
-    elementsLoader: (req: string | null, currentLoadIndex: number, amount: number) => Promise<APIResponse>
-}
-
 //tools dependencies
-
 export interface ElementsComparation<T>{
     a: T,
     b: T,

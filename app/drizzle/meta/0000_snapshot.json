@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8d82c7f6-0fae-471c-a2c5-5d098fce9735",
+  "id": "75238f6e-d4b1-4c1e-b4a7-d1bd73e2deed",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "Product": {
@@ -21,6 +21,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "units_bought_amount": {
+          "name": "units_bought_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "units_amount": {
           "name": "units_amount",
           "type": "integer",
@@ -34,6 +41,17 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "unit_bought_price": {
+          "name": "unit_bought_price",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "generated": {
+            "as": "(bought_price * 1.0 / units_bought_amount)",
+            "type": "virtual"
+          }
         },
         "bought_price": {
           "name": "bought_price",
@@ -83,6 +101,17 @@
         "sell_price": {
           "name": "sell_price",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "generated": {
+            "as": "(sell_unit_price * amount)",
+            "type": "virtual"
+          }
+        },
+        "sell_unit_price": {
+          "name": "sell_unit_price",
+          "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

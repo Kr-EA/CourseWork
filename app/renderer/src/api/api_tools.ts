@@ -37,6 +37,27 @@ export async function getProductVariants() {
     return response
 }
 
+export async function changeSell(el: TSell) {
+    const response = await window.electronAPI.changeSell(el)
+    return response
+}
+
+export async function changeProduct(el: TProduct) {
+    const response = await window.electronAPI.changeProduct(el)
+    console.log(response);
+    return response
+}
+
+export async function deleteSell(el: TSell) {
+    const response = await window.electronAPI.deleteSell(el)
+    return response
+}
+
+export async function deleteProduct(el: TProduct) {
+    const response = await window.electronAPI.deleteProduct(el)
+    return response
+}
+
 export async function getDistinctProductNames() {
     const response = await window.electronAPI.getDistinctProductNames()
     return response

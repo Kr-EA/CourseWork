@@ -30,15 +30,15 @@ export const Testdata = () => {
 
     return (<>
         <Header routes={routes}></Header>
-        <h1>Генерация закупок</h1>
+        <h2>Генерация закупок</h2>
         <form onSubmit={(e) => {e.preventDefault(); productGenerator(productAmount)}}>
             <Input value={productAmount} name="amount" type="number" onChange={(e) => setProductAmount(parseInt(e.target.value, 10))}></Input>
-            <Button type="submit">Сгенерировать {productAmount} закупок</Button>
+            <Button type="submit">Сгенерировать {productAmount || 0} закупок</Button>
         </form>
-        <h1>Генерация продаж</h1>
+        <h2>Генерация продаж</h2>
         <form onSubmit={(e) => {e.preventDefault(); sellGenerator(sellAmount)}}>
             <Input value={sellAmount} name="amount" type="number" onChange={(e) => setSellAmount(parseInt(e.target.value, 10))}></Input>
-            <Button type="submit">Сгенерировать {sellAmount} продаж</Button>
+            <Button type="submit">Сгенерировать {sellAmount || 0} продаж</Button>
         </form>
     </>)
 }
