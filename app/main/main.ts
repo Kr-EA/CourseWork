@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { gt, like, eq, max, sql, and } from 'drizzle-orm';
+import { gt, like, eq, max, sql, and, count, sum } from 'drizzle-orm';
 import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
 import { DB_TNewProduct, DB_TProduct, DB_TSell, Product, Sell } from './src/db/schema';
-import { TNewSell, APIResponse, TProduct } from '../renderer/src/types/types'
+import { TNewSell, APIResponse, TProduct, OneProductStats, AllProductStats } from '../renderer/src/types/types'
 
 ipcMain.handle('get-products', async (e, currentIndex: number, amount: number) => {
   const db = getDb();
@@ -48,13 +48,7 @@ ipcMain.handle('get-distinct-product-names', async (e) => {
   const db = getDb();
   var response: APIResponse = {status: 0, error: '', data: ''}
   try{
-    response.data = await db
-      .select({
-        id: sql<number>`MIN(${Product.id})`,
-        name: Product.name
-      })
-      .from(Product)
-      .groupBy(Product.name);
+    response.data = await db.selectDistinct({label: Product.name}).from(Product).orderBy(Product.name)
   }
   catch(err){
     response.status = 1
@@ -316,6 +310,105 @@ ipcMain.handle('add-sell', async (e, sell: TNewSell, test: boolean) => {
     }
   });
   return response
+})
+
+ipcMain.handle('get-stats', async(e, products: Array<string>) => {
+  const db = getDb()
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  var allProductStats: AllProductStats = {product_stats: [], sells_by_product: []}
+  try{
+    products.forEach((name: string) => {
+      
+        const sellsByDays = db
+        .select(
+          {
+            day: sql<string>`date(${Sell.sell_date}, 'unixepoch', 'localtime')`,          
+            sells_amount: count(Sell.id)
+          })
+        .from(Sell)
+        .innerJoin(Product, eq(Sell.product_id, Product.id))
+        .where(eq(Product.name, name))
+        .groupBy(Sell.sell_date)
+        .all()
+
+        const sellsByPrices = db
+          .select(
+            {
+              price: Sell.sell_unit_price,       
+              sells_amount: sum(Sell.amount)
+            })
+          .from(Sell)
+          .innerJoin(Product, eq(Sell.product_id, Product.id))
+          .where(eq(Product.name, name))
+          .groupBy(Sell.sell_unit_price)
+          .all()
+
+        const boughtPricesByDay = db
+          .select(
+            {
+              bought_price: Product.unit_bought_price,       
+              bought_date: sql<string>`date(${Product.bought_date}, 'unixepoch', 'localtime')`,
+            })
+          .from(Product)
+          .where(eq(Product.name, name))
+          .all()
+
+        const sellsOnBoughtDate = db
+          .select(
+            {     
+              sells_on_bought_date: sum(Sell.amount),
+            })
+          .from(Sell)
+          .innerJoin(Product, eq(Sell.product_id, Product.id))
+          .where(
+            and(
+              eq(Product.name, name), 
+              eq(sql`date(${Product.bought_date}, 'unixepoch', 'localtime')`, sql`date(${Sell.sell_date}, 'unixepoch', 'localtime')`)))
+          .get()
+
+        const allSells = db
+          .select(
+            {     
+              sells: sum(Sell.amount)
+            })
+          .from(Sell)
+          .innerJoin(Product, eq(Sell.product_id, Product.id))
+          .where(eq(Product.name, name))
+          .get()
+
+        const remainder = db
+          .select(
+            {     
+              remainder: sum(Product.units_amount),
+            })
+          .from(Product)
+          .where(eq(Product.name, name))
+          .get()
+
+        var oneProductStats: OneProductStats = {
+          name: name,
+          sells_by_days: sellsByDays,
+          sells_by_prices: sellsByPrices.map((el) => ({sells_amount: parseInt(el.sells_amount || '0'), price: el.price})),
+          bought_prices_by_day: boughtPricesByDay.map((el) => ({bought_price: el.bought_price || 0, day: el.bought_date})),
+          sells_percent: {
+            sells_amount: parseInt(allSells?.sells || '0') - parseInt(sellsOnBoughtDate?.sells_on_bought_date || '0'),
+            sells_on_bought_date: parseInt(sellsOnBoughtDate?.sells_on_bought_date || '0'),
+            remainder: parseInt(remainder?.remainder || '0'),
+          }
+        }
+        allProductStats.product_stats.push(oneProductStats)
+        allProductStats.sells_by_product.push({product_name: name, sells_amount: parseInt(allSells?.sells || '0')})
+      
+    })
+    response.data = allProductStats
+    return response
+  }
+  catch{
+    response.status = 1;
+    response.error = 'Ошибка при определении показателей статистики'
+    return response
+  }
+  
 })
 
 function createWindow() {

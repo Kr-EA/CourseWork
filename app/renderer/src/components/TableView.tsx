@@ -9,6 +9,7 @@ import { getComparator } from '../api/tools';
 import { TableComponents, TableVirtuoso } from 'react-virtuoso';
 import React from 'react';
 import { ArrowDownward, ArrowUpward } from '@mui/icons-material';
+import { alertBgColor, alertFontColor, defaultBgColor, defaultFontColor, iconsAlertColor, iconsDefaultColor } from '../types/colors';
 
 const ScrollContainer = React.forwardRef<HTMLDivElement, ScrollContainerProps>(
     ({ onReachBottom, ...props }, ref) => {
@@ -49,7 +50,6 @@ export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, excep
 
     const currentLoadIndex = useRef<number>(0);
     const loading = useRef<boolean>(false);
-    const tableRef = useRef<HTMLElement>(null);
 
     const handleReachBottom = useCallback(() => {
         setLoadedEntries(prev => prev + loadUnit);
@@ -136,7 +136,7 @@ export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, excep
 
     const tableHead = () => (
         (
-        <TableRow sx={{ backgroundColor: 'background.paper' }}>
+        <TableRow sx={{ backgroundColor: iconsDefaultColor }}>
             {(columnOrder || tableHeaders).map((value) =>
                 !exceptions.find((e) => e === value) ? (
                     <TableCell style={{border: '0.5px solid lightgrey'}} align='center' variant='head' key={value} sortDirection={orderBy === value as keyof T ? order : false}>
@@ -146,6 +146,7 @@ export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, excep
                             onClick={() => handleSort(value as keyof T)}
                             IconComponent={() => null}
                             sx={{
+                                color: 'white',
                                 '&:hover .custom-sort-icon': {
                                     opacity: 1,
                                 }
@@ -175,20 +176,30 @@ export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, excep
                 </TableCell>
                 ) : null
             )}
-            <TableCell style={{border: '0.5px solid lightgrey', width: '300px'}} align='center'>
+            <TableCell style={{color: 'white', border: '0.5px solid lightgrey', width: '300px'}} align='center'>
                 Действия
             </TableCell>
         </TableRow>)
     )
 
     const TRow = (index: number, el: T) => {
+        var bgColor = defaultBgColor
+        var iconColor = iconsDefaultColor
+        var fontColor = defaultFontColor
+        Object.keys(el as Object).forEach((key) => {
+            if (el[key as keyof typeof el] == 0){
+                bgColor = alertBgColor
+                iconColor = iconsAlertColor
+                fontColor = alertFontColor
+            }
+        })
         return(
             <React.Fragment key={index}>
                 {(columnOrder || Object.keys(el as Object)).map((key) => {
                     const rawValue = el[key as keyof typeof el]
                     if (rawValue || rawValue == 0){
                         return(
-                            <TableCell style={{border: '0.5px solid lightgrey'}} align={typeof(rawValue) == 'string' ? "center" : 'right'} key={Math.random()}>
+                            <TableCell style={{fontWeight: rawValue == 0 ? 'bold' : 0,  color: fontColor, backgroundColor: bgColor, border: '0.5px solid lightgrey'}} align={typeof(rawValue) == 'string' ? "center" : 'right'} key={Math.random()}>
                             {(() => {
                                 const stringRawValue = String(rawValue);
                                 if (typeof rawValue !== 'object') {
@@ -217,10 +228,10 @@ export function TableView<T>({ req, loadUnit, elementsLoader, columnOrder, excep
                         )
                     }
                 })}
-            <TableCell style={{border: '0.5px solid lightgrey'}} align='center'>
-                <Button onClick={() => {onRepeat(el)}}><RepeatIcon/></Button>
-                <Button onClick={() => {onDelete(el)}}><DeleteIcon/></Button>
-                <Button onClick={() => {onChange(el)}}><ModeEditIcon/></Button>
+            <TableCell style={{backgroundColor: bgColor, border: '0.5px solid lightgrey'}} align='center'>
+                <Button onClick={() => {onRepeat(el)}}><RepeatIcon style={{color: iconColor}}/></Button>
+                <Button onClick={() => {onDelete(el)}}><DeleteIcon style={{color: iconColor}}/></Button>
+                <Button onClick={() => {onChange(el)}}><ModeEditIcon style={{color: iconColor}}/></Button>
             </TableCell>
             </React.Fragment>
         )

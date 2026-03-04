@@ -59,3 +59,39 @@ export interface TSell extends DB_TSell{
 };
 export interface TNewProduct extends DB_TNewProduct{};
 export interface TNewSell extends DB_TNewSell{};
+
+//DB inner types
+export type OneProductStats = {
+    name: string;
+    sells_by_days: {
+        day: string,
+        sells_amount: number,
+    }[],
+    sells_by_prices: {
+        price: number,
+        sells_amount: number,
+    }[],
+    bought_prices_by_day: {
+        day: string,
+        bought_price: number,
+    }[],
+    sells_percent: {
+        sells_on_bought_date: number,
+        sells_amount: number,
+        remainder: number,
+    }
+}
+
+export type roundGraphic = {
+    sells_on_bought_date: number, 
+    sells_amount: number,
+    remainder: number
+}
+
+export type AllProductStats = {
+    product_stats: OneProductStats[],
+    sells_by_product: {
+        product_name: string,
+        sells_amount: number,
+    }[]
+}

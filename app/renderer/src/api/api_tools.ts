@@ -67,3 +67,8 @@ export async function getMaximumProductID() {
     const response = await window.electronAPI.getMaximumProductID()
     return response
 }
+
+export async function getProductStats(products: Array<string>) {
+    const response = await window.electronAPI.getProductStats(products)
+    return response
+}
