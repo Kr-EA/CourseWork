@@ -7,6 +7,7 @@
   "type": "commonjs",
   "main": "dist/main/main.js",
   "scripts": {
+    "dist": "electron-builder",
     "build:main": "webpack --config webpack.main.config.js",
     "build:renderer": "webpack --config webpack.renderer.config.js",
     "dev:main": "webpack --config webpack.main.config.js --watch",
@@ -59,5 +60,36 @@
     "style-loader": "^4.0.0",
     "ts-transformer-keys": "^0.4.4",
     "yup": "^1.7.1"
+  },
+  "build": {
+  "appId": "com.example.myapp",
+  "productName": "Мое Приложение",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "**/*",
+    "!**/*.ts",
+    "!*.code-workspace",
+    "!LICENSE.md",
+    "!package-lock.json",
+    "!src/**/*",
+    "!e2e/**/*",
+    "!tests/**/*",
+    "!*.map",
+    "!dist/**/*"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "build/icon.ico"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "build/icon.icns"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "build/icon.png"
   }
+}
 }

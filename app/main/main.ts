@@ -323,7 +323,7 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
         .select(
           {
             day: sql<string>`date(${Sell.sell_date}, 'unixepoch', 'localtime')`,          
-            sells_amount: count(Sell.id)
+            sells_amount: sum(Sell.amount)
           })
         .from(Sell)
         .innerJoin(Product, eq(Sell.product_id, Product.id))
@@ -387,7 +387,7 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
 
         var oneProductStats: OneProductStats = {
           name: name,
-          sells_by_days: sellsByDays,
+          sells_by_days: sellsByDays.map((el) => ({day: el.day, sells_amount: parseInt(el.sells_amount || '0', 10)})),
           sells_by_prices: sellsByPrices.map((el) => ({sells_amount: parseInt(el.sells_amount || '0'), price: el.price})),
           bought_prices_by_day: boughtPricesByDay.map((el) => ({bought_price: el.bought_price || 0, day: el.bought_date})),
           sells_percent: {

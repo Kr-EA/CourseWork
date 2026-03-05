@@ -97,7 +97,7 @@ export const Analytics = () => {
               return(
                   <div 
                     draggable='true' 
-                    style={{padding: '10px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
+                    style={{cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
                     onDragStart={(e) => {e.dataTransfer.setData('selected', el);}} 
                     key={index.key}>
                       {el}
@@ -197,8 +197,8 @@ export const Analytics = () => {
                     return(
                       <>
                         <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) setSubOption(subOption-1)}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) setSubOption(subOption+1)}}>{'>'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
                         </Stack>
                         <Box textAlign={'center'}>
                           <h1>Объем продаж продукта по дням</h1>
@@ -218,8 +218,8 @@ export const Analytics = () => {
                     return(
                       <>
                         <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) setSubOption(subOption-1)}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) setSubOption(subOption+1)}}>{'>'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
                         </Stack>
                         <Box textAlign={'center'}>
                           <h1>Объем продаж продукта по цене</h1>
@@ -240,8 +240,8 @@ export const Analytics = () => {
                     return (
                       <>
                         <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) setSubOption(subOption-1)}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) setSubOption(subOption+1)}}>{'>'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
                         </Stack>
                         <Box textAlign={'center'}>
                           <h1>Стоимость закупки продукта по дням</h1>
@@ -262,8 +262,8 @@ export const Analytics = () => {
                     return (
                     <>
                         <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) setSubOption(subOption-1)}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) setSubOption(subOption+1)}}>{'>'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
+                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
                         </Stack>
                         <Box textAlign={'center'}>
                           <h1>Распределение продаж</h1>
