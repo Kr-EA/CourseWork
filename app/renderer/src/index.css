@@ -14,3 +14,56 @@ html, body {
 #root{
     height: 100%;
 }
+
+.homepage-card{
+    opacity: 0;
+    animation: homepage-display 500ms ease-out forwards;
+    box-shadow: 0px 1px 10px 1px rgb(151, 151, 151);
+    padding: 10px;
+    scale: 1;
+    border-radius: 50px;
+    transition: transform 200ms ease-in-out;
+}
+
+.homepage-card:hover{
+    transform: scale(1.1);
+}
+
+.go-button{
+    height: auto; 
+    min-width: 40px !important;
+    width: 40px !important;
+    height: 40px;
+    transition: border-radius 200ms ease-in-out, width 200ms ease-in-out !important;
+}
+
+.go-button:hover{
+    aspect-ratio: auto;
+    border-radius: 20px;
+    width: 100% !important;
+}
+
+#card-1{
+    animation-delay: 0s;
+}
+
+#card-2{
+    animation-delay: 350ms;
+}
+
+#card-3{
+    animation-delay: 700ms;
+}
+
+#card-4{
+    animation-delay: 1050ms;
+}
+
+@keyframes homepage-display {
+    from{
+        opacity: 0;
+    }
+    to{
+        opacity: 1;
+    }
+}

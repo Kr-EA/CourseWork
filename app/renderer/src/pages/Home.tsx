@@ -20,30 +20,34 @@ export const Home = () => {
         <Stack direction={'row'} alignItems={'center'} justifyContent={'center'} sx={{marginBottom: '50px'}}>
           <Stack direction={'column'} alignItems={'center'} justifyContent={'center'}>
             <h1 style={{textAlign: 'center'}}>Система контроля и аналитики товарооборота (Система "СКАТ")</h1>
-            <p>Система, которая возьмет на себя учет продаж Вашего магазина</p>
+            <p style={{fontSize: '16pt'}}>Система, которая возьмет на себя учет продаж Вашего магазина</p>
           </Stack>
         </Stack>
 
         <Stack direction={'row'}>
           <HomepageCard 
+            id="card-1"
             Icon={<WarehouseIcon sx={{fontSize: '70px'}}/>}
             title="Учет закупок"
             description="Ни один купленный товар не пропадет!"
             buttonCLicked={() => navigator('/products')}
           />
           <HomepageCard 
+            id="card-2"
             Icon={<StorageIcon sx={{fontSize: '70px'}}/>}
             title="Учет продаж"
             description="Все ваши продажи, как на ладони!"
             buttonCLicked={() => navigator('/sells')}
           />
           <HomepageCard 
+            id="card-3"
             Icon={<LeaderboardIcon sx={{fontSize: '70px'}}/>}
             title="Аналитика"
-            description="Будьте в тренде!"
+            description="Будьте в курсе потребностей своего покупателя!"
             buttonCLicked={() => navigator('/analytics')}
           />
-          <HomepageCard 
+          <HomepageCard
+            id="card-4" 
             Icon={<ScienceIcon sx={{fontSize: '70px'}}/>}
             title="Генератор тестовых данных"
             description="Проверьте систему на тестовых данных!"
@@ -54,4 +58,4 @@ export const Home = () => {
     </Stack>
   </>
   )
-}//<Icon sx={{fontSize: '70px', marginBottom: '10px'}}></Icon>
+}

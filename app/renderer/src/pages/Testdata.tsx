@@ -16,13 +16,13 @@ export const Testdata = () => {
         load().then((response) => setMaxID(response.data as number))
     })
 
-    const productGenerator = (amount: number) => {
+    const productGenerator = async (amount: number) => {
         for (let i = 0; i < amount; i=i+1){
            addProduct(getRandomProduct())
         }
     }
 
-    const sellGenerator = (amount: number) => {
+    const sellGenerator = async (amount: number) => {
         for (let i = 0; i < amount; i=i+1){
             addSell(getRandomSell(maxID), true);
         }

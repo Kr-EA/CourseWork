@@ -19,12 +19,20 @@ export const Analytics = () => {
   const [range, setRange] = useState({ startIndex: 0, endIndex: 5 });
   const [option, setOption] = useState<string>('Общее')
   const [subOption, setSubOption] = useState<number>(0)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
       const load = async () => {
         const loadedProductVariants: APIResponse = await getDistinctProductNames()
-        setProductVariants(loadedProductVariants.data.map((el: {label: string}) => (el.label)))
+        setTimeout(
+          () => {
+            setProductVariants(loadedProductVariants.data.map((el: {label: string}) => (el.label))); 
+            setIsLoading(false)
+          },
+          500
+        )
       }
+      setIsLoading(true)
       load()
   }, [])
 
@@ -37,10 +45,6 @@ export const Analytics = () => {
     load()
     
   }, [selectedProductVariants])
-
-  useEffect(() => {
-    console.log(Object.keys(graphics)[subOption]);
-  }, [subOption])
 
   const variantsRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
@@ -92,18 +96,22 @@ export const Analytics = () => {
           <Stack 
             direction={'column'} 
             style={{height: variantsVirtualizer.getTotalSize(), position: 'relative'}}>
-            {variantsVirtualizer.getVirtualItems().map((index) => {
-              const el = filteredVariants[index.index];
-              return(
-                  <div 
-                    draggable='true' 
-                    style={{cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
-                    onDragStart={(e) => {e.dataTransfer.setData('selected', el);}} 
-                    key={index.key}>
-                      {el}
-                  </div> 
-              )
-            })}
+            {
+            !isLoading ? 
+                variantsVirtualizer.getVirtualItems().map((index) => {
+                  const el = filteredVariants[index.index];
+                  return(
+                      <div 
+                        draggable='true' 
+                        style={{cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
+                        onDragStart={(e) => {e.dataTransfer.setData('selected', el);}} 
+                        key={index.key}>
+                          {el}
+                      </div>)
+                  })
+                :
+               <img style={{marginTop: '100%'}} src='/Dual-Ring.svg'></img>
+            }
           </Stack>
         </Paper>
       </Stack>
@@ -124,18 +132,20 @@ export const Analytics = () => {
           <Stack 
             direction={'column'}
             style={{height: selectedVirtualizer.getTotalSize(), position: 'relative'}}>
-            {selectedVirtualizer.getVirtualItems().map((index) => {
+            {
+            selectedVirtualizer.getVirtualItems().map((index) => {
                 const el = filteredSelected[index.index]
                 return(
                   <div 
                     draggable='true' 
-                    style={{padding: '10px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
+                    style={{ cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
                     onDragStart={(e) => {e.dataTransfer.setData('variant', el);}} 
                     key={index.key}>
                       {el}
                   </div> 
                 )
-              })}
+              })
+            }
           </Stack>
         </Paper>
       </Stack>
@@ -203,6 +213,8 @@ export const Analytics = () => {
                         <Box textAlign={'center'}>
                           <h1>Объем продаж продукта по дням</h1>
                         </Box>
+                        {
+                          data?.sells_by_days && data?.sells_by_days.length > 0 ?
                         <ResponsiveContainer width="100%" height="90%">
                           <LineChart data={data?.sells_by_days}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -210,8 +222,20 @@ export const Analytics = () => {
                             <YAxis/>
                             <Line dataKey={`sells_amount`} stroke="#534dc1"></Line>
                             <Tooltip />
+                            <Brush 
+                              dataKey="product_name" 
+                              height={30} 
+                              stroke="#8884d8"
+                              tickFormatter={() => ''}
+                              startIndex={Math.min(range.startIndex, data?.sells_by_days.length - 1)}
+                              endIndex={Math.min(range.endIndex, data?.sells_by_days.length - 1)}
+                              onChange={(newRange) => setRange(newRange)}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
+                        :
+                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
+                        }
                       </>
                     )
                   case 'sells_by_prices':
@@ -224,6 +248,7 @@ export const Analytics = () => {
                         <Box textAlign={'center'}>
                           <h1>Объем продаж продукта по цене</h1>
                         </Box>
+                        { data?.sells_by_prices && data?.sells_by_prices.length > 0 ?
                         <ResponsiveContainer width="100%" height="90%">
                           <BarChart data={data?.sells_by_prices}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -232,8 +257,20 @@ export const Analytics = () => {
                             <Line dataKey={`sells_amount`} stroke="#534dc1"></Line>
                             <Tooltip />
                             <Bar dataKey={`sells_amount`} fill="#8884d8"/>
+                            <Brush 
+                              dataKey="product_name" 
+                              height={30} 
+                              stroke="#8884d8"
+                              tickFormatter={() => ''}
+                              startIndex={Math.min(range.startIndex, (data?.sells_by_prices.length || 1) - 1)}
+                              endIndex={Math.min(range.endIndex, (data?.sells_by_prices.length || 1) - 1)}
+                              onChange={(newRange) => setRange(newRange)}
+                            />
                           </BarChart>
                         </ResponsiveContainer>
+                        :
+                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
+                      }
                       </>
                     )
                   case 'bought_prices_by_day':
@@ -246,6 +283,8 @@ export const Analytics = () => {
                         <Box textAlign={'center'}>
                           <h1>Стоимость закупки продукта по дням</h1>
                         </Box>
+                        {
+                        data?.bought_prices_by_day && data?.bought_prices_by_day.length > 0 ?
                         <ResponsiveContainer width="100%" height="90%">
                           <LineChart data={data?.bought_prices_by_day}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -253,8 +292,20 @@ export const Analytics = () => {
                             <YAxis />
                             <Line dataKey={`bought_price`} stroke="#534dc1"></Line>
                             <Tooltip />
+                            <Brush 
+                              dataKey="product_name" 
+                              height={30} 
+                              stroke="#8884d8"
+                              tickFormatter={() => ''}
+                              startIndex={Math.min(range.startIndex, (data?.bought_prices_by_day.length || 1) - 1)}
+                              endIndex={Math.min(range.endIndex, (data?.bought_prices_by_day.length || 1) - 1)}
+                              onChange={(newRange) => setRange(newRange)}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
+                        :
+                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет закупок</h1>
+                        }
                       </>
                     )
                   default:
@@ -268,6 +319,7 @@ export const Analytics = () => {
                         <Box textAlign={'center'}>
                           <h1>Распределение продаж</h1>
                         </Box>
+
                         <ResponsiveContainer width="100%" height="90%">
                           <PieChart data={data?.bought_prices_by_day}>
                             <Legend />

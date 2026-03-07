@@ -3,14 +3,14 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { JSX } from "react"
 import { defaultBgColor, iconsDefaultColor } from "../types/colors";
 
-export const HomepageCard = (props: {Icon: JSX.Element, title: string, description: string, buttonCLicked: () => void}) => {
+export const HomepageCard = (props: {id: string, Icon: JSX.Element, title: string, description: string, buttonCLicked: () => void}) => {
     return (<>
-        <Box sx={{flex: 1, margin: '20px', maxHeight: '200px'}}>        
-            <Stack direction={'column'} alignItems={'center'}>   
+        <Box id={props.id} className='homepage-card' sx={{flex: 1, margin: '20px', maxHeight: '400px'}}>        
+            <Stack direction={'column'} alignItems={'center'} justifyContent={'space-between'} sx={{height: '100%'}}>   
                 {props.Icon}
-                <h5>{props.title}</h5>
-                <span style={{textAlign: 'center'}}>{props.description}</span>
-                <Button onClick={props.buttonCLicked} sx={{marginTop: '10px', aspectRatio: '1/1', width:'50px', borderRadius: '100%', backgroundColor: iconsDefaultColor, color: defaultBgColor}}>
+                <h5 style={{fontSize: '16pt'}}>{props.title}</h5>
+                <span style={{fontSize: '12pt', textAlign: 'center'}}>{props.description}</span>
+                <Button className='go-button' onClick={props.buttonCLicked} sx={{marginTop: '10px', borderRadius: '100%', backgroundColor: iconsDefaultColor, color: defaultBgColor}}>
                     <ArrowForwardIcon/>
                 </Button>
             </Stack> 

@@ -9,7 +9,7 @@ export const Header = ({routes} : HeaderProps) => {
     const location = useLocation()
 
     return (<>
-        <Stack direction={'row'} style={{width: '100%'}} alignItems={'center'} justifyContent={'space-around'}>
+        <Stack direction={'row'} style={{width: '100%', marginBottom: '10px'}} alignItems={'center'} justifyContent={'space-around'}>
             <Box sx = {{border: `1px solid ${accentColor}`, padding: '10px', borderRadius: '20px'}}>
                 {routes.map((el) => (
                 <Button sx={
