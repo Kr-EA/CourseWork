@@ -4,3 +4,8 @@
 package-lock.json
 .DS_Store
 *.log
+/python/env
+/python/dist
+/python/build
+/python/main.spec
+.vscode

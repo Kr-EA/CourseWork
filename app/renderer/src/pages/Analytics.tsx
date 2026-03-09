@@ -3,11 +3,12 @@ import { Header } from "../components/Header"
 import { routes } from "../types/routes"
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AllProductStats, APIResponse, roundGraphic} from "../types/types";
-import { getDistinctProductNames, getProductStats } from "../api/api_tools";
+import { getDataAnalytics, getDistinctProductNames, getProductStats } from "../api/api_tools";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, ResponsiveContainer, Brush, LineChart, PieChart, Legend, Pie, Cell } from 'recharts';
 import { graphics } from "../types/graphics";
 import { COLORS } from "../types/colors";
+import { Translation } from "../types/translations";
 
 export const Analytics = () => {
 
@@ -16,10 +17,12 @@ export const Analytics = () => {
   const [searchSelected, setSearchSelected] = useState<string>('')
   const [searchVariants, setSearchVariants] = useState<string>('')
   const [staticalData, setStaticalData] = useState<AllProductStats>()
+  const [staticalDataAndPrediction, setStaticalDataAndPrediction] = useState<AllProductStats>()
   const [range, setRange] = useState({ startIndex: 0, endIndex: 5 });
   const [option, setOption] = useState<string>('Общее')
   const [subOption, setSubOption] = useState<number>(0)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [analyzeComplited, setAnalyzeComplited] = useState<boolean>(false)
 
   useEffect(() => {
       const load = async () => {
@@ -45,6 +48,59 @@ export const Analytics = () => {
     load()
     
   }, [selectedProductVariants])
+
+  useEffect(() => {
+    const load = async() => {
+
+      const sellsByDays = staticalData?.product_stats?.find((el) => el.name === option)?.sells_by_days;
+
+      if (!sellsByDays || sellsByDays.length === 0) return;
+
+      const evaluatedData = sellsByDays.map((el) => (
+        {
+          day: el.day,
+          value: el.sells_amount || 0
+        }
+      ))
+      if(evaluatedData){
+          getDataAnalytics(evaluatedData)
+          .then((data) => {
+            const prediction: Array<{day: string, sells_amount: number | undefined, predict_sells_amount: number | undefined}> = data.data
+            const index = staticalData.product_stats?.findIndex(el => el.name === option);
+            setStaticalDataAndPrediction((prev) => {
+        
+              if (index === -1 || (!index && index != 0)) return prev;
+
+              return {
+              ...staticalData,
+              product_stats: staticalData.product_stats.map((el, i) => 
+                i === index 
+                  ? { 
+                      ...el, 
+                      sells_by_days: [...(el.sells_by_days || []), ...prediction] 
+                    } 
+                  : el
+              ),
+              sells_by_product: staticalData.sells_by_product
+            };
+
+            })
+          })
+        }
+    }
+    setAnalyzeComplited(false)
+    if (subOption === 0){
+      load()
+    }
+    else {
+      setStaticalDataAndPrediction(staticalData)
+      setAnalyzeComplited(true)
+    }
+  }, [option, subOption, staticalData])
+
+  useEffect(() => {
+    setAnalyzeComplited(true)
+  }, [staticalDataAndPrediction])
 
   const variantsRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
@@ -77,6 +133,20 @@ export const Analytics = () => {
     overscan: 1,
   });
 
+  const WindowHeader = (props: {name: string}) => {
+    return(
+      <>
+        <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
+          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
+          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
+        </Stack>
+        <Box textAlign={'center'}>
+          <h1>{props.name}</h1>
+        </Box>
+      </>
+    )
+  }
+
   return(<>
     <Header routes={routes}/>
     <Stack direction={'row'}>
@@ -91,6 +161,9 @@ export const Analytics = () => {
                 if(value.length>1){
                   setProductVariants([...productVariants, value].sort((a, b) => (a > b ? 1 : -1)))
                   setSelectedProductVariants([...selectedProductVariants.filter((el) => el!=value)])
+                  if(value == option){
+                    setOption('Общее')
+                  }
                 }
               }}>
           <Stack 
@@ -168,7 +241,7 @@ export const Analytics = () => {
           {
             (() => {
               if (option === 'Общее'){
-                const validData = staticalData?.sells_by_product?.filter(
+                const validData = (staticalData)?.sells_by_product?.filter(
                   item => item.sells_amount !== undefined && item.sells_amount !== null && !isNaN(item.sells_amount)
                 ) || [];
 
@@ -183,10 +256,10 @@ export const Analytics = () => {
                     <ResponsiveContainer width="100%" height="95%">
                       <BarChart data={validData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="product_name" textAnchor="end" />
+                        <XAxis dataKey="product_name" textAnchor="end"/>
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="sells_amount" fill="#8884d8" />
+                        <Bar dataKey="sells_amount" fill="#8884d8" name={'Объем продаж'}/>
                         <Brush 
                           dataKey="product_name" 
                           height={30} 
@@ -200,148 +273,152 @@ export const Analytics = () => {
                     </ResponsiveContainer>
                   </>
                 )}
-              const data = staticalData.product_stats.find((el) => el.name == option)
-              const valueKey = graphics[subOption]
-                switch (valueKey){
-                  case 'sells_by_days':
-                    return(
-                      <>
-                        <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
-                        </Stack>
-                        <Box textAlign={'center'}>
-                          <h1>Объем продаж продукта по дням</h1>
-                        </Box>
-                        {
-                          data?.sells_by_days && data?.sells_by_days.length > 0 ?
-                        <ResponsiveContainer width="100%" height="90%">
-                          <LineChart data={data?.sells_by_days}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey={`day`} textAnchor="end"/>
-                            <YAxis/>
-                            <Line dataKey={`sells_amount`} stroke="#534dc1"></Line>
-                            <Tooltip />
-                            <Brush 
-                              dataKey="product_name" 
-                              height={30} 
-                              stroke="#8884d8"
-                              tickFormatter={() => ''}
-                              startIndex={Math.min(range.startIndex, data?.sells_by_days.length - 1)}
-                              endIndex={Math.min(range.endIndex, data?.sells_by_days.length - 1)}
-                              onChange={(newRange) => setRange(newRange)}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                        :
-                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
-                        }
-                      </>
-                    )
-                  case 'sells_by_prices':
-                    return(
-                      <>
-                        <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
-                        </Stack>
-                        <Box textAlign={'center'}>
-                          <h1>Объем продаж продукта по цене</h1>
-                        </Box>
-                        { data?.sells_by_prices && data?.sells_by_prices.length > 0 ?
-                        <ResponsiveContainer width="100%" height="90%">
-                          <BarChart data={data?.sells_by_prices}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey={`price`} textAnchor="end"/>
-                            <YAxis/>
-                            <Line dataKey={`sells_amount`} stroke="#534dc1"></Line>
-                            <Tooltip />
-                            <Bar dataKey={`sells_amount`} fill="#8884d8"/>
-                            <Brush 
-                              dataKey="product_name" 
-                              height={30} 
-                              stroke="#8884d8"
-                              tickFormatter={() => ''}
-                              startIndex={Math.min(range.startIndex, (data?.sells_by_prices.length || 1) - 1)}
-                              endIndex={Math.min(range.endIndex, (data?.sells_by_prices.length || 1) - 1)}
-                              onChange={(newRange) => setRange(newRange)}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        :
-                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
-                      }
-                      </>
-                    )
-                  case 'bought_prices_by_day':
-                    return (
-                      <>
-                        <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
-                        </Stack>
-                        <Box textAlign={'center'}>
-                          <h1>Стоимость закупки продукта по дням</h1>
-                        </Box>
-                        {
-                        data?.bought_prices_by_day && data?.bought_prices_by_day.length > 0 ?
-                        <ResponsiveContainer width="100%" height="90%">
-                          <LineChart data={data?.bought_prices_by_day}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey={`day`} textAnchor="end"/>
-                            <YAxis />
-                            <Line dataKey={`bought_price`} stroke="#534dc1"></Line>
-                            <Tooltip />
-                            <Brush 
-                              dataKey="product_name" 
-                              height={30} 
-                              stroke="#8884d8"
-                              tickFormatter={() => ''}
-                              startIndex={Math.min(range.startIndex, (data?.bought_prices_by_day.length || 1) - 1)}
-                              endIndex={Math.min(range.endIndex, (data?.bought_prices_by_day.length || 1) - 1)}
-                              onChange={(newRange) => setRange(newRange)}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                        :
-                        <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет закупок</h1>
-                        }
-                      </>
-                    )
-                  default:
-                    const pieData = [{name: 'В день закупки', value: data?.sells_percent.sells_on_bought_date}, {name: 'В другие дни', value: data?.sells_percent.sells_amount}, {name: 'Остаток', value: data?.sells_percent.remainder}]
-                    return (
-                    <>
-                        <Stack width={window.outerWidth*0.65} direction={'row'} justifyContent={'space-between'}>
-                          <Button fullWidth onClick={() => {if(subOption-1 >= 0) {setSubOption(subOption-1)} else {setSubOption(Object.keys(graphics).length-1)}}}>{'<'}</Button>
-                          <Button fullWidth onClick={() => {if(subOption+1 < Object.keys(graphics).length) {setSubOption(subOption+1)} else {setSubOption(0)}}}>{'>'}</Button>
-                        </Stack>
-                        <Box textAlign={'center'}>
-                          <h1>Распределение продаж</h1>
-                        </Box>
 
-                        <ResponsiveContainer width="100%" height="90%">
-                          <PieChart data={data?.bought_prices_by_day}>
-                            <Legend />
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <Pie
-                              data={pieData}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              outerRadius={300}
-                              fill="#8884d8"
-                              dataKey="value"
-                            >
-                              {pieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </>
-                    )
-                }
+              return (
+                <>
+                  <WindowHeader name={Translation[graphics[subOption] as keyof typeof Translation]}/>
+                {(() => {
+                  if (analyzeComplited){
+                    const data = ((staticalDataAndPrediction) ? staticalDataAndPrediction : staticalData).product_stats.find((el) => el.name == option)
+                    const valueKey = graphics[subOption]
+                    switch (valueKey){
+                      case 'sells_by_days':
+                        return(
+                          <>
+                            {
+                              data?.sells_by_days && data?.sells_by_days.length > 0 ?
+                            <ResponsiveContainer width="100%" height="90%">
+                              <LineChart data={data?.sells_by_days}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey={`day`} textAnchor="end"/>
+                                <YAxis/>
+                                <Line dataKey={`sells_amount`} stroke="#534dc1" name="Ваши продажи"></Line>
+                                <Line dataKey={`predict_sells_amount`} stroke="#ff4242" name="Прогноз"></Line>
+                                <Tooltip />
+                                <Brush 
+                                  dataKey="product_name" 
+                                  height={30} 
+                                  stroke="#8884d8"
+                                  tickFormatter={() => ''}
+                                  startIndex={Math.min(range.startIndex, data?.sells_by_days.length - 1)}
+                                  endIndex={Math.min(range.endIndex, data?.sells_by_days.length - 1)}
+                                  onChange={(newRange) => setRange(newRange)}
+                                />
+                                <Legend/>
+                              </LineChart>
+                            </ResponsiveContainer>
+                            :
+                            <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
+                            }
+                          </>
+                        )
+                      case 'sells_by_prices':
+                        return(
+                          <>
+                            { data?.sells_by_prices && data?.sells_by_prices.length > 0 ?
+                            <ResponsiveContainer width="100%" height="90%">
+                              <BarChart data={data?.sells_by_prices}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey={`price`} textAnchor="end"/>
+                                <YAxis/>
+                                <Line dataKey={`sells_amount`} stroke="#534dc1"></Line>
+                                <Tooltip 
+                                  labelFormatter={(value) => `Цена (за ед.): ${value}`}
+                                  formatter={(value, name, props) => {
+                                    if (name === 'sells_amount') {
+                                      return [value, 'Продано'];
+                                    }
+                                    return null;
+                                  }}
+                                />
+                                <Bar dataKey={`sells_amount`} fill="#8884d8" name={"Продано"}/>
+                                <Brush 
+                                  dataKey="product_name" 
+                                  height={30} 
+                                  stroke="#8884d8"
+                                  tickFormatter={() => ''}
+                                  startIndex={Math.min(range.startIndex, (data?.sells_by_prices.length || 1) - 1)}
+                                  endIndex={Math.min(range.endIndex, (data?.sells_by_prices.length || 1) - 1)}
+                                  onChange={(newRange) => setRange(newRange)}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                            :
+                            <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет продаж</h1>
+                          }
+                          </>
+                        )
+                      case 'bought_prices_by_day':
+                        return (
+                          <>
+                            {
+                            data?.bought_prices_by_day && data?.bought_prices_by_day.length > 0 ?
+                            <ResponsiveContainer width="100%" height="90%">
+                              <LineChart data={data?.bought_prices_by_day}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey={`day`} textAnchor="end"/>
+                                <YAxis />
+                                <Line dataKey={`bought_price`} stroke="#534dc1" name="Закупочная стоимость"></Line>
+                                <Tooltip />
+                                <Brush 
+                                  dataKey="product_name" 
+                                  height={30} 
+                                  stroke="#8884d8"
+                                  tickFormatter={() => ''}
+                                  startIndex={Math.min(range.startIndex, (data?.bought_prices_by_day.length || 1) - 1)}
+                                  endIndex={Math.min(range.endIndex, (data?.bought_prices_by_day.length || 1) - 1)}
+                                  onChange={(newRange) => setRange(newRange)}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                            :
+                            <h1 style={{marginTop: '35%', width: '100%', textAlign: 'center'}}>Нет закупок</h1>
+                            }
+                          </>
+                        )
+                      default:
+                        const pieData = [{name: 'В день закупки', value: data?.sells_percent.sells_on_bought_date}, {name: 'В другие дни', value: data?.sells_percent.sells_amount}, {name: 'Остаток', value: data?.sells_percent.remainder}]
+                        return (
+                        <>
+                            <ResponsiveContainer width="100%" height="90%">
+                              <PieChart data={data?.bought_prices_by_day}>
+                                <Legend />
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <Tooltip 
+                                  formatter={(value, name, props) => {
+                                    let sum = 0
+                                    pieData.forEach((el) => sum += el.value || 0)
+                                    const valueOrZero = value as number || 0
+                                    const displayValue = Math.floor(((valueOrZero/sum)*100)*100)/100
+                                    return [displayValue+'%', name]
+                                    return null;
+                                  }}
+                                />
+                                <Pie
+                                  data={pieData}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={300}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                >
+                                  {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </>
+                        )
+                    }
+                  }
+                  else{
+                    return (<img style={{marginTop: '30%', marginLeft: '40%'}} src='/Dual-Ring.svg'></img>)
+                  }
+                })()}
+                </>
+              )
             })()
           }
         </Paper>

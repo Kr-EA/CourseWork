@@ -63,10 +63,14 @@
   },
   "build": {
   "appId": "com.example.myapp",
-  "productName": "Мое Приложение",
+  "productName": "С.К.А.Т.",
   "directories": {
     "output": "dist"
   },
+  "extraResources": [
+    "python/dist/main.exe",
+    "python/dist/main"
+  ],
   "files": [
     "**/*",
     "!**/*.ts",
@@ -77,7 +81,11 @@
     "!e2e/**/*",
     "!tests/**/*",
     "!*.map",
-    "!dist/**/*"
+    "dist/**/*",
+     "!python/env/**/*",     
+    "!python/.env/**/*",     
+    "!**/node_modules/**/*",
+    "!python/__pycache__/**/*" 
   ],
   "win": {
     "target": "nsis",

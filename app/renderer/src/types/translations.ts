@@ -14,4 +14,8 @@ export const Translation = {
     amount: 'Количество проданных единиц',
     product_id: 'ID товара',
     product_name: 'Наименование',
+    sells_by_prices: 'Продажи по ценам',
+    sells_by_days: 'Продажи по дням',
+    bought_prices_by_day: 'Закупочная стоимость по дням закупки',
+    sells_percent: 'Распределение продаж'
 }

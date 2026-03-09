@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Translation } from '../types/colums_translation';
+import { Translation } from '../types/translations';
 import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import DeleteIcon from '@mui/icons-material/Delete';

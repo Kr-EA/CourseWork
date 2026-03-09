@@ -72,3 +72,8 @@ export async function getProductStats(products: Array<string>) {
     const response = await window.electronAPI.getProductStats(products)
     return response
 }
+
+export async function getDataAnalytics(data: Array<{day: string, value: number}>) {
+    const response = await window.electronAPI.analyzeSales(data)
+    return response
+}

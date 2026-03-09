@@ -5,6 +5,10 @@ import * as path from 'path';
 import { DB_TNewProduct, DB_TProduct, DB_TSell, Product, Sell } from './src/db/schema';
 import { TNewSell, APIResponse, TProduct, OneProductStats, AllProductStats } from '../renderer/src/types/types'
 
+const { spawn } = require('child_process');
+
+let pythonProcess = null;
+
 ipcMain.handle('get-products', async (e, currentIndex: number, amount: number) => {
   const db = getDb();
   var response: APIResponse = {status: 0, error: '', data: ''}
@@ -387,9 +391,18 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
 
         var oneProductStats: OneProductStats = {
           name: name,
-          sells_by_days: sellsByDays.map((el) => ({day: el.day, sells_amount: parseInt(el.sells_amount || '0', 10)})),
-          sells_by_prices: sellsByPrices.map((el) => ({sells_amount: parseInt(el.sells_amount || '0'), price: el.price})),
-          bought_prices_by_day: boughtPricesByDay.map((el) => ({bought_price: el.bought_price || 0, day: el.bought_date})),
+          sells_by_days: sellsByDays.map((el) => {
+            if(sellsByDays.indexOf(el) == sellsByDays.length-1){
+              return (
+                {day: el.day, predict_sells_amount: parseInt(el.sells_amount || '0', 10), sells_amount: parseInt(el.sells_amount || '0', 10)}
+              )
+            }
+            return (
+              {day: el.day, predict_sells_amount: undefined, sells_amount: parseInt(el.sells_amount || '0', 10)}
+            )
+          }),
+          sells_by_prices: sellsByPrices.map((el) => ({sells_amount: parseInt(el.sells_amount || '0'), price: Math.floor(el.price*100)/100})),
+          bought_prices_by_day: boughtPricesByDay.map((el) => ({bought_price: Math.floor((el.bought_price || 0)*100)/100, day: el.bought_date})),
           sells_percent: {
             sells_amount: parseInt(allSells?.sells || '0') - parseInt(sellsOnBoughtDate?.sells_on_bought_date || '0'),
             sells_on_bought_date: parseInt(sellsOnBoughtDate?.sells_on_bought_date || '0'),
@@ -410,6 +423,19 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
   }
   
 })
+
+ipcMain.handle('analyze-sales', async (event, salesData) => {
+    const response: APIResponse = {data: '', status: 0, error: ''}
+    try {
+        response.data = await runPythonAnalysis(salesData);
+        console.log(response.data);
+        return response;
+    } catch (err) {
+        response.error = err as string
+        response.status = 1
+        return response
+    }
+});
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -449,3 +475,83 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+function getPythonPath() {
+    const isDev = !app.isPackaged;
+    
+    if (isDev) {
+        return process.platform === 'win32' ? 'python.exe' : 'python3';
+    }
+
+    const resourcePath = process.resourcesPath;
+    if (process.platform === 'win32') {
+        return path.join(resourcePath, 'python', 'dist', 'main.exe');
+    } else {
+        return path.join(resourcePath, 'python', 'dist', 'main');
+    }
+}
+
+function getPythonArgs() {
+    const isDev = !app.isPackaged;
+    return isDev ? [path.join(__dirname, '..', '..', 'python', 'main.py')] : [];
+}
+
+function startPython() {
+    const pythonPath = getPythonPath();
+    const args = getPythonArgs();
+
+    pythonProcess = spawn(pythonPath, args, {
+        stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    pythonProcess.stderr.on('data', (data: any) => {
+        console.error(`Python Error: ${data}`);
+    });
+
+    pythonProcess.on('error', (err: any) => {
+        console.error('Failed to start Python:', err);
+    });
+}
+
+function runPythonAnalysis(dataArray: Array<{day: string, value: number}>) {
+    return new Promise((resolve, reject) => {
+        const pythonPath = getPythonPath();
+        const args = getPythonArgs();
+
+        const pyProcess = spawn(pythonPath, args, {
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let outputData = '';
+
+        dataArray.forEach(item => {
+            pyProcess.stdin.write(JSON.stringify(item) + '\n');
+        });
+        pyProcess.stdin.end();
+
+        pyProcess.stdout.on('data', (data: any) => {
+            outputData += data.toString();
+        });
+
+        pyProcess.stderr.on('data', (data: any) => {
+            console.error(`Python Stderr: ${data}`);
+        });
+
+        pyProcess.on('close', (code: any) => {
+            if (code !== 0) {
+                reject(new Error(`Python exited with code ${code}`));
+                return;
+            }
+            try {
+                const result = JSON.parse(outputData.trim());
+                resolve(result);
+            } catch (e) {
+                reject(new Error(`Failed to parse Python output: ${outputData}`));
+            }
+        });
+
+        pyProcess.on('error', (err: any) => {
+            reject(err);
+        });
+    });
+}

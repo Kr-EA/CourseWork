@@ -16,6 +16,7 @@ export interface IElectronAPI {
     getDistinctProductNames: () => Promise<APIResponse>
     getMaximumProductID: () => Promise<APIResponse>
     getProductStats: (products: Array<string>) => Promise<APIResponse>
+    analyzeSales: (data: Array<{day: string, value: number}>) => Promise<APIResponse>
 }
 
 const api: IElectronAPI = {
@@ -33,5 +34,6 @@ const api: IElectronAPI = {
     getDistinctProductNames: async() => ipcRenderer.invoke('get-distinct-product-names'),
     getMaximumProductID: async() => ipcRenderer.invoke('max-product-ID'),
     getProductStats: async(products: Array<string>) => ipcRenderer.invoke('get-stats', products),
+    analyzeSales: (data: Array<{day: string, value: number}>) => ipcRenderer.invoke('analyze-sales', data)
 }
 contextBridge.exposeInMainWorld('electronAPI', api)

@@ -65,7 +65,8 @@ export type OneProductStats = {
     name: string;
     sells_by_days: {
         day: string,
-        sells_amount: number,
+        sells_amount: number | undefined,
+        predict_sells_amount: number | undefined
     }[],
     sells_by_prices: {
         price: number,
