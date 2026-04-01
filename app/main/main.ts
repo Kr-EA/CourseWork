@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { gt, like, eq, max, sql, and, count, sum } from 'drizzle-orm';
+import { gt, like, eq, max, sql, and, count, sum, between } from 'drizzle-orm';
 import { getDb, initDb } from './src/db/index'
 import * as path from 'path';
 import { DB_TNewProduct, DB_TProduct, DB_TSell, Product, Sell } from './src/db/schema';
@@ -316,7 +316,7 @@ ipcMain.handle('add-sell', async (e, sell: TNewSell, test: boolean) => {
   return response
 })
 
-ipcMain.handle('get-stats', async(e, products: Array<string>) => {
+ipcMain.handle('get-stats', async(e, products: Array<string>, startPeriod: string, endPeriod: string) => {
   const db = getDb()
   var response: APIResponse = {status: 0, error: '', data: ''}
   var allProductStats: AllProductStats = {product_stats: [], sells_by_product: []}
@@ -331,7 +331,7 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
           })
         .from(Sell)
         .innerJoin(Product, eq(Sell.product_id, Product.id))
-        .where(eq(Product.name, name))
+        .where(and(eq(Product.name, name), between(sql<string>`date(${Sell.sell_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod)))
         .groupBy(Sell.sell_date)
         .all()
 
@@ -354,7 +354,7 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
               bought_date: sql<string>`date(${Product.bought_date}, 'unixepoch', 'localtime')`,
             })
           .from(Product)
-          .where(eq(Product.name, name))
+          .where(and(eq(Product.name, name), between(sql<string>`date(${Product.bought_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod)))
           .all()
 
         const sellsOnBoughtDate = db
@@ -367,7 +367,9 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
           .where(
             and(
               eq(Product.name, name), 
-              eq(sql`date(${Product.bought_date}, 'unixepoch', 'localtime')`, sql`date(${Sell.sell_date}, 'unixepoch', 'localtime')`)))
+              eq(sql`date(${Product.bought_date}, 'unixepoch', 'localtime')`, sql`date(${Sell.sell_date}, 'unixepoch', 'localtime')`),
+              between(sql`date(${Product.bought_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod)
+            ))
           .get()
 
         const allSells = db
@@ -377,7 +379,10 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
             })
           .from(Sell)
           .innerJoin(Product, eq(Sell.product_id, Product.id))
-          .where(eq(Product.name, name))
+          .where(and(
+            eq(Product.name, name),
+            between(sql`date(${Sell.sell_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod)
+          ))
           .get()
 
         const remainder = db
@@ -424,12 +429,45 @@ ipcMain.handle('get-stats', async(e, products: Array<string>) => {
   
 })
 
+ipcMain.handle('get-stonks-spend', async(event, startPeriod, endPeriod) => {
+  var response: APIResponse = {status: 0, error: '', data: ''}
+  try{
+    const db = getDb();
+    const stonks = 
+      db.select({
+        stonks: sum(Sell.sell_price),
+      })
+      .from(Sell)
+      .where(between(sql`date(${Sell.sell_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod))
+      .get()
+    const spend = 
+      db.select({
+        spend: sum(Product.bought_price),
+      })
+      .from(Product)
+      .where(between(sql`date(${Product.bought_date}, 'unixepoch', 'localtime')`, startPeriod, endPeriod))
+      .get()
+    response.data = [stonks?.stonks, spend?.spend]
+    return response
+  }
+  catch{
+    response.status = 1
+    response.error = 'Ошибка при поиске данных продаж'
+    return response
+  }
+})
+
 ipcMain.handle('analyze-sales', async (event, salesData) => {
     const response: APIResponse = {data: '', status: 0, error: ''}
+    console.log(salesData);
     try {
-        response.data = await runPythonAnalysis(salesData);
-        console.log(response.data);
-        return response;
+        if(salesData.length > 0){
+          response.data = await runPythonAnalysis(salesData);
+          return response;
+        }
+        else{
+          return{}
+        }
     } catch (err) {
         response.error = err as string
         response.status = 1

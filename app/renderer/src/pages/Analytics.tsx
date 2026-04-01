@@ -3,7 +3,7 @@ import { Header } from "../components/Header"
 import { routes } from "../types/routes"
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AllProductStats, APIResponse, roundGraphic} from "../types/types";
-import { getDataAnalytics, getDistinctProductNames, getProductStats } from "../api/api_tools";
+import { getDataAnalytics, getDistinctProductNames, getProductStats, getSellsStonks } from "../api/api_tools";
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, ResponsiveContainer, Brush, LineChart, PieChart, Legend, Pie, Cell } from 'recharts';
 import { graphics } from "../types/graphics";
@@ -22,7 +22,11 @@ export const Analytics = () => {
   const [option, setOption] = useState<string>('Общее')
   const [subOption, setSubOption] = useState<number>(0)
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [analyzeComplited, setAnalyzeComplited] = useState<boolean>(false)
+  const [analyzeComplited, setAnalyzeComplited] = useState<boolean>(true)
+  const [startPeriod, setStartPeriod] = useState<string>('')
+  const [endPeriod, setEndPeriod] = useState<string>('')
+  const [stonks, setStonks] = useState<number>(0)
+  const [spend, setSpend] = useState<number>(0)
 
   useEffect(() => {
       const load = async () => {
@@ -41,20 +45,30 @@ export const Analytics = () => {
 
   useEffect(() => {
     const load = async () => {
-      const response: APIResponse = await getProductStats(selectedProductVariants)
-      setStaticalData(response.data)
+      if (startPeriod && endPeriod){
+        if (selectedProductVariants){
+          const response: APIResponse = await getProductStats(selectedProductVariants, startPeriod, endPeriod)
+          setStaticalData(response.data)
+
+        }
+        const sellsInfo: APIResponse = await getSellsStonks(startPeriod, endPeriod)
+        if (sellsInfo.data.length === 2){
+          setStonks(sellsInfo.data[0])
+          setSpend(sellsInfo.data[1])
+        }
+      }
     }
 
     load()
     
-  }, [selectedProductVariants])
+  }, [selectedProductVariants, startPeriod, endPeriod])
 
   useEffect(() => {
     const load = async() => {
 
       const sellsByDays = staticalData?.product_stats?.find((el) => el.name === option)?.sells_by_days;
 
-      if (!sellsByDays || sellsByDays.length === 0) return;
+      if (!sellsByDays || sellsByDays.length === 0) {setAnalyzeComplited(true); return};
 
       const evaluatedData = sellsByDays.map((el) => (
         {
@@ -150,78 +164,94 @@ export const Analytics = () => {
   return(<>
     <Header routes={routes}/>
     <Stack direction={'row'}>
-      <Stack direction={'column'} style={{marginRight: '20px'}}>
-        <Input style={{position: 'fixed', backgroundColor: 'background.paper', width: window.outerWidth*0.15}} value={searchVariants} onChange={(e) => setSearchVariants(e.target.value)} placeholder="Поиск по товарам"></Input>
-        <Paper ref={variantsRef} style={{marginTop: '50px', overflowY: 'auto', height: window.outerHeight*0.85, width: window.outerWidth*0.15}}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={
-              (e) => {
-                e.preventDefault(); 
-                const value = e.dataTransfer.getData('variant')
-                if(value.length>1){
-                  setProductVariants([...productVariants, value].sort((a, b) => (a > b ? 1 : -1)))
-                  setSelectedProductVariants([...selectedProductVariants.filter((el) => el!=value)])
-                  if(value == option){
-                    setOption('Общее')
-                  }
-                }
-              }}>
-          <Stack 
-            direction={'column'} 
-            style={{height: variantsVirtualizer.getTotalSize(), position: 'relative'}}>
-            {
-            !isLoading ? 
-                variantsVirtualizer.getVirtualItems().map((index) => {
-                  const el = filteredVariants[index.index];
-                  return(
-                      <div 
-                        draggable='true' 
-                        style={{cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
-                        onDragStart={(e) => {e.dataTransfer.setData('selected', el);}} 
-                        key={index.key}>
-                          {el}
-                      </div>)
-                  })
-                :
-               <img style={{marginTop: '100%'}} src='/Dual-Ring.svg'></img>
-            }
+        <Stack direction={'column'}>
+          <Stack direction={'column'}>
+            <Stack direction={'row'}>
+                <span style={{marginRight: '10px', paddingTop: '10px'}}>Отчет с</span>
+                <Input value={startPeriod} onChange={(e) => setStartPeriod(e.target.value)} style={{marginRight: '10px'}} type="date"/>
+                <span style={{marginRight: '10px', paddingTop: '10px'}}>по</span>
+                <Input value={endPeriod} onChange={(e) => setEndPeriod(e.target.value)} type="date"/>
+            </Stack>
+            <Stack direction={'row'}>
+              <span style={{marginRight: '30px'}}>Затраты: {spend}</span>
+              <span>Прибыль: {stonks}</span>
+            </Stack>
           </Stack>
-        </Paper>
-      </Stack>
+          <Stack direction={'row'}>
+              <Stack direction={'column'} style={{marginRight: '20px'}}>
+                <Input style={{position: 'fixed', backgroundColor: 'background.paper', width: window.outerWidth*0.15}} value={searchVariants} onChange={(e) => setSearchVariants(e.target.value)} placeholder="Поиск по товарам"></Input>
+                <Paper ref={variantsRef} style={{marginTop: '50px', overflowY: 'auto', height: window.outerHeight*0.85, width: window.outerWidth*0.15}}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={
+                      (e) => {
+                        e.preventDefault(); 
+                        const value = e.dataTransfer.getData('variant')
+                        if(value.length>1){
+                          setProductVariants([...productVariants, value].sort((a, b) => (a > b ? 1 : -1)))
+                          setSelectedProductVariants([...selectedProductVariants.filter((el) => el!=value)])
+                          if(value == option){
+                            setOption('Общее')
+                          }
+                        }
+                      }}>
+                  <Stack 
+                    direction={'column'} 
+                    style={{height: variantsVirtualizer.getTotalSize(), position: 'relative'}}>
+                    {
+                    !isLoading ? 
+                        variantsVirtualizer.getVirtualItems().map((index) => {
+                          const el = filteredVariants[index.index];
+                          return(
+                              <div 
+                                draggable='true' 
+                                style={{cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
+                                onDragStart={(e) => {e.dataTransfer.setData('selected', el);}} 
+                                key={index.key}>
+                                  {el}
+                              </div>)
+                          })
+                        :
+                      <img style={{marginTop: '100%'}} src='/Dual-Ring.svg'></img>
+                    }
+                  </Stack>
+                </Paper>
+              </Stack>
 
-      <Stack direction={'column'} style={{marginRight: '20px'}}>
-        <Input style={{position: 'fixed', backgroundColor: 'background.paper', width: window.outerWidth*0.15}} value={searchSelected} onChange={(e) => setSearchSelected(e.target.value)} placeholder="Поиск по выбранному"></Input>
-        <Paper ref={selectedRef} style={{marginTop: '50px', overflowY: 'auto', height: window.outerHeight*0.85, width: window.outerWidth*0.15}}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={
-              (e) => {
-                e.preventDefault(); 
-                const value = e.dataTransfer.getData('selected')
-                if(value.length > 1){
-                  setSelectedProductVariants([...selectedProductVariants, value].sort((a, b) => (a > b ? 1 : -1)))
-                  setProductVariants([...productVariants.filter((el) => el!=value)])
-                }
-              }}>
-          <Stack 
-            direction={'column'}
-            style={{height: selectedVirtualizer.getTotalSize(), position: 'relative'}}>
-            {
-            selectedVirtualizer.getVirtualItems().map((index) => {
-                const el = filteredSelected[index.index]
-                return(
-                  <div 
-                    draggable='true' 
-                    style={{ cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
-                    onDragStart={(e) => {e.dataTransfer.setData('variant', el);}} 
-                    key={index.key}>
-                      {el}
-                  </div> 
-                )
-              })
-            }
-          </Stack>
-        </Paper>
-      </Stack>
+              <Stack direction={'column'} style={{marginRight: '20px'}}>
+                <Input style={{position: 'fixed', backgroundColor: 'background.paper', width: window.outerWidth*0.15}} value={searchSelected} onChange={(e) => setSearchSelected(e.target.value)} placeholder="Поиск по выбранному"></Input>
+                <Paper ref={selectedRef} style={{marginTop: '50px', overflowY: 'auto', height: window.outerHeight*0.85, width: window.outerWidth*0.15}}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={
+                      (e) => {
+                        e.preventDefault(); 
+                        const value = e.dataTransfer.getData('selected')
+                        if(value.length > 1){
+                          setSelectedProductVariants([...selectedProductVariants, value].sort((a, b) => (a > b ? 1 : -1)))
+                          setProductVariants([...productVariants.filter((el) => el!=value)])
+                        }
+                      }}>
+                  <Stack 
+                    direction={'column'}
+                    style={{height: selectedVirtualizer.getTotalSize(), position: 'relative'}}>
+                    {
+                    selectedVirtualizer.getVirtualItems().map((index) => {
+                        const el = filteredSelected[index.index]
+                        return(
+                          <div 
+                            draggable='true' 
+                            style={{ cursor: 'grab', boxShadow:'0px 0px 5px 0px black', borderRadius:'10px', textAlign:'center', margin:'15px', width: '90%', padding: '5px', position: 'absolute', transform: `translateY(${index.start}px)`}} 
+                            onDragStart={(e) => {e.dataTransfer.setData('variant', el);}} 
+                            key={index.key}>
+                              {el}
+                          </div> 
+                        )
+                      })
+                    }
+                  </Stack>
+                </Paper>
+              </Stack>
+        </Stack>
+    </Stack>
 
 
       { 
@@ -286,7 +316,7 @@ export const Analytics = () => {
                         return(
                           <>
                             {
-                              data?.sells_by_days && data?.sells_by_days.length > 0 ?
+                              (data?.sells_by_days && data?.sells_by_days.length > 0) ?
                             <ResponsiveContainer width="100%" height="90%">
                               <LineChart data={data?.sells_by_days}>
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -427,7 +457,7 @@ export const Analytics = () => {
       :
 
       <Stack style={{width: '100%', alignItems: 'center', justifyContent: 'center'}} direction={'column'}>
-        <h2>Выберите товары для анализа</h2>
+        <h2>Выберите товары для анализа и даты отчетного периода</h2>
       </Stack>
 
       }

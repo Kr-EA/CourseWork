@@ -15,8 +15,9 @@ export interface IElectronAPI {
     getProductVariants: () => Promise<APIResponse>
     getDistinctProductNames: () => Promise<APIResponse>
     getMaximumProductID: () => Promise<APIResponse>
-    getProductStats: (products: Array<string>) => Promise<APIResponse>
+    getProductStats: (products: Array<string>, startPeriod: string, endPeriod: string) => Promise<APIResponse>
     analyzeSales: (data: Array<{day: string, value: number}>) => Promise<APIResponse>
+    getSellStonks: (startPeriod: string, endPeriod: string) => Promise<APIResponse>
 }
 
 const api: IElectronAPI = {
@@ -33,7 +34,8 @@ const api: IElectronAPI = {
     getProductVariants: async() => ipcRenderer.invoke('get-product-variants'),
     getDistinctProductNames: async() => ipcRenderer.invoke('get-distinct-product-names'),
     getMaximumProductID: async() => ipcRenderer.invoke('max-product-ID'),
-    getProductStats: async(products: Array<string>) => ipcRenderer.invoke('get-stats', products),
-    analyzeSales: (data: Array<{day: string, value: number}>) => ipcRenderer.invoke('analyze-sales', data)
+    getProductStats: async(products: Array<string>, startPeriod: string, endPeriod: string) => ipcRenderer.invoke('get-stats', products, startPeriod, endPeriod),
+    analyzeSales: (data: Array<{day: string, value: number}>) => ipcRenderer.invoke('analyze-sales', data),
+    getSellStonks: (startPeriod: string, endPeriod: string) => ipcRenderer.invoke('get-stonks-spend', startPeriod, endPeriod)
 }
 contextBridge.exposeInMainWorld('electronAPI', api)

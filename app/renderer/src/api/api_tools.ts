@@ -68,12 +68,17 @@ export async function getMaximumProductID() {
     return response
 }
 
-export async function getProductStats(products: Array<string>) {
-    const response = await window.electronAPI.getProductStats(products)
+export async function getProductStats(products: Array<string>, startPeriod: string, endPeriod: string) {
+    const response = await window.electronAPI.getProductStats(products, startPeriod, endPeriod)
     return response
 }
 
 export async function getDataAnalytics(data: Array<{day: string, value: number}>) {
     const response = await window.electronAPI.analyzeSales(data)
+    return response
+}
+
+export async function getSellsStonks(startPeriod: string, endPeriod: string){
+    const response = await window.electronAPI.getSellStonks(startPeriod, endPeriod)
     return response
 }
